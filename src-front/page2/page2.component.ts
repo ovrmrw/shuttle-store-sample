@@ -30,8 +30,6 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   registerSubscriptionsEveryEntrance() {
-    this._$colors = [];
-    
     this.service.disposableSubscriptions = [
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page2'))
@@ -47,7 +45,6 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  // set title(title: string) { this.service.setTitle(title); }
   get title() { return this.state.title; }
 
   // Observableにより更新される変数なので勝手に変更しないこと。;

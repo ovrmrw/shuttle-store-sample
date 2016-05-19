@@ -35,8 +35,6 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   registerSubscriptionsEveryEntrance() {
-    this._$colors = [];
-
     this.service.disposableSubscriptions = [
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page1'))
@@ -60,12 +58,10 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   setColor() {
     this.service.setColor(this.color);
     this.color = '';
-    this._$colors = [];
   }
 
   clearState() {
     this.service.clearStatesAndLocalStorage();
-    this._$colors = [];
   }
 
   // Observableにより更新される変数なので勝手に変更しないこと。;

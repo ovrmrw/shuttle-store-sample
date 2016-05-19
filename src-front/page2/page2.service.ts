@@ -21,7 +21,7 @@ export class Page2State {
 
   get title() { return this.store.getState<string>(P1S.APPTITLE_IDENTIFIER); }
   get titles$() { return this.store.getStates$<string>(P1S.APPTITLE_IDENTIFIER); }
-  get titleReplayStream$$() { return this.store.getPresetReplayStream$<string>(P1S.APPTITLE_IDENTIFIER, null, 75); }
+  get titleReplayStream$$() { return this.store.getPresetReplayStream$<string>(P1S.APPTITLE_IDENTIFIER, null, 100); }
 
-  get colorsReplayStream$$() { return this.store.getPresetReplayArrayStream$<string>(P1S.COLOR_IDENTIFIER, null, 300); }
+  get colorsReplayStream$$() { return this.store.getPresetReplayArrayStream$<string>(P1S.COLOR_IDENTIFIER, null, 400); }
 }
