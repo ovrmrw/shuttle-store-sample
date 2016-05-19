@@ -1,5 +1,4 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
-import { Observable } from 'rxjs/Rx';
 
 import { ComponentGuidelineUsingStore } from '../store';
 import { Page2Service, Page2State } from './page2.service';

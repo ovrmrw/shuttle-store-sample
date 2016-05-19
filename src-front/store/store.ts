@@ -126,7 +126,7 @@ export class ShuttleStore {
       .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
       .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
-        return Observable.timer(0, _interval)
+        return Observable.timer(1, _interval)
           .map(x => states[x])
           .take(states.length);
       });
@@ -140,7 +140,7 @@ export class ShuttleStore {
       .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
       .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
-        return Observable.timer(0, _interval)
+        return Observable.timer(1, _interval)
           .map(x => {
             ary.push(states[x]);
             return ary;
