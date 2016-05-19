@@ -8,7 +8,7 @@
     "mime": "registry:npm/mime#1.3.0+20160423043021",
     "request": "registry:npm/request#2.69.0+20160428223725"
   },
-  "ambientDependencies": {
+  "globalDependencies": {
     "body-parser": "registry:dt/body-parser#0.0.0+20160317120654",
     "express": "registry:dt/express#4.0.0+20160317120654",
     "express-serve-static-core": "registry:dt/express-serve-static-core#0.0.0+20160322035842",

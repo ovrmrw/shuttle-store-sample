@@ -15,7 +15,7 @@ gulp.task('tscClient', () => {
   tsProject.src()
     .pipe(plumber())
     //.pipe(ignore.exclude(['src-server/**/*']))
-    .pipe(ignore.include(['{./,}src-client/**/*.ts']))
+    .pipe(ignore.include(['{./,}src-{client,front}/**/*.ts']))
     .pipe(ts(tsProject))
     // .pipe(babel())
     .pipe(gulp.dest('.'));

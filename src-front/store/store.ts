@@ -132,6 +132,23 @@ export class ShuttleStore {
       });
   }
 
+  getPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], limit: number, interval: number, descending?: boolean): Observable<T[]> {
+    const _interval = interval && interval > 0 ? interval : 1;
+    let ary = [];
+    return this.getStates$<T>(nameablesAsIdentifier, limit)
+      .do(() => ary = [])
+      .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
+      .map(states => descending ? states : states.reverse())
+      .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
+        return Observable.timer(0, _interval)
+          .map(x => {
+            ary.push(states[x]);
+            return ary;
+          })
+          .take(states.length);
+      });
+  }
+
   setDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
