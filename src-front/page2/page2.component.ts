@@ -29,6 +29,7 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   registerSubscriptionsEveryEntrance() {
+    // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page2'))
@@ -37,7 +38,7 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
       this.state.titleReplayStream$$
         .do(title => this._$title = title)
         .subscribe(() => this.cd.markForCheck()),
-      
+
       this.state.colorsReplayStream$$
         .do(colors => this._$colors = colors)
         .subscribe(() => this.cd.markForCheck()),

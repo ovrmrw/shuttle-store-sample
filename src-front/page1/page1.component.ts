@@ -34,6 +34,7 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   registerSubscriptionsEveryEntrance() {
+    // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page1'))
@@ -49,7 +50,7 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  set title(title: string) { this.service.setTitle(title); }
+  set title(input: string) { this.service.setTitle(input); }
   get title() { return this.state.title; }
 
   color: string;

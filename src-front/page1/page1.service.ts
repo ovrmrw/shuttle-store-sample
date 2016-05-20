@@ -11,8 +11,8 @@ export class Page1Service extends ShuttleStoreService {
 
   constructor(store: ShuttleStore) { super(store); }
 
-  setTitle(title: string) { this.store.setState(title, P1S.TITLE_IDENTIFIER); }
-  setColor(color: string) { this.store.setState(color, P1S.COLOR_IDENTIFIER, new StateRule({ limit: 20 })); }
+  setTitle(text: string) { this.store.setState(text, P1S.TITLE_IDENTIFIER); }
+  setColor(text: string) { this.store.setState(text, P1S.COLOR_IDENTIFIER, new StateRule({ limit: 20 })); }
 }
 
 const P1S = Page1Service; // shorthand
