@@ -120,9 +120,10 @@ export class ShuttleStore {
   }
 
   // ただの配列を時間軸のある値のストリームに変換して流す。後続はinterval毎に配列の値を順々に受け取る。
-  // original: [a,b,c]
-  // stream: |--a--b--c-->
-  // stream: |--c--b--a--> (if descending is true)
+  // states: [a,b,c,d,e] (this.states)
+  // input: [e,c,a]
+  // output: |--a--c--e-->
+  // output: |--e--c--a--> (if descending is true)
   getPresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], limit: number, interval: number, descending?: boolean): Observable<T> {
     const _interval = interval && interval > 0 ? interval : 1;
     return this.getStates$<T>(nameablesAsIdentifier, limit)
@@ -136,9 +137,10 @@ export class ShuttleStore {
   }
 
   // ただの配列を時間軸のある配列のストリームに変換して流す。後続はinterval毎に要素が順々に増えていく配列を受け取る。
-  // original: [a,b,c]
-  // stream: |--[a]--[a,b]--[a,b,c]-->
-  // stream: |--[c]--[c,b]--[c,b,a]--> (if descending is true)
+  // states: [a,b,c,d,e] (this.states)
+  // input: [e,c,a]
+  // output: |--[a]--[a,c]--[a,c,e]-->
+  // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
   getPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], limit: number, interval: number, descending?: boolean): Observable<T[]> {
     const _interval = interval && interval > 0 ? interval : 1;
     let ary = [];
