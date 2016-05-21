@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
 
-import { ComponentGuidelineUsingStore } from '../store';
+import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page2Service, Page2State } from './page2.service';
 
 ///////////////////////////////////////////////////////////////////////////////////

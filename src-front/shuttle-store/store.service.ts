@@ -1,9 +1,9 @@
 import { Subscription } from 'rxjs/Subscription';
-import { ShuttleStore } from './store';
+import { Store } from './store';
 
-export class ShuttleStoreService {
+export class StoreService {
   constructor(
-    protected store: ShuttleStore
+    protected store: Store
   ) { }
 
   set disposableSubscription(subscription: Subscription) {

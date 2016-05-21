@@ -1,6 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
 // Entry Point
-
 import 'zone.js/dist/zone';
 import { provide, enableProdMode } from '@angular/core';
 import { ROUTER_PROVIDERS } from '@angular/router-deprecated';

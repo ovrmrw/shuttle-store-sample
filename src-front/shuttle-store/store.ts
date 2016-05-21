@@ -21,7 +21,7 @@ const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
 
 @Injectable()
-export class ShuttleStore {
+export class Store {
   private states: StateObject[];
   private subscriptions: SubscriptionObject[] = [];
   private rule: RuleObject = {};
@@ -61,7 +61,6 @@ export class ShuttleStore {
           console.time('localStorageSetItem');
           window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateObjects));
           console.timeEnd('localStorageSetItem');
-          // console.log('localStorageに保存');
         } catch (err) {
           console.error(err);
         }
@@ -223,7 +222,6 @@ function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, ma
 // gabageCollectorの処理速度が高速になるようにチューニングしたもの。10倍近く速い。
 // 参考: http://qiita.com/keroxp/items/67804391a8d65eb32cb8
 function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleObject, limit: number = DEFAULT_LIMIT): StateObject[] {
-  // 最速0.38 ms
   console.time('gabageCollectorFastTuned');
   // const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
   let keys: string[] = [];
@@ -255,8 +253,9 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
     let objs: StateObject[] = [];
     // let k = 0;
     for (let k = 0; k < stateObjects.length; k = (k + 1) | 0) {
-      if (identifier in stateObjects[k]) {
-        objs.push(stateObjects[k]);
+      const stateObject = stateObjects[k];
+      if (identifier in stateObject) {
+        objs.push(stateObject);
       }
       // k = (k + 1) | 0;
     }
@@ -309,7 +308,7 @@ function pickValueFromObject<T>(obj: { string?: T }): T {
   try {
     return lodash.values(obj)[0] as T;
   } catch (err) {
-    // return obj as T;
+    return obj as T;
   }
 }
 
@@ -319,9 +318,11 @@ function pickValueFromObject<T>(obj: { string?: T }): T {
 export class StateRule {
   limit: number;
   constructor(options: StateRuleOptions) {
-    const opts = options; // 変数名を短縮。
+    const opts = options; // shorthand
     if (opts.limit && opts.limit > 0) {
       this.limit = opts.limit;
+    } else {
+      this.limit = DEFAULT_LIMIT;
     }
   }
 }
