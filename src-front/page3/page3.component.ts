@@ -13,7 +13,7 @@ import { Page3Service, Page3State } from './page3.service';
     <hr />
     <h3>A very simple way to save input values and load them when you re-enter this page. (NOT USING STORE, BUT JUST LOCALSTORAGE)</h3>
     <hr />
-    <div>String: <input type="text" [(ngModel)]="str" />{{str}}</div>
+    <div>String: <input type="text" [(ngModel)]="str_global" />{{str_global}}</div>
     <div>Number: <input type="text" [(ngModel)]="num" />{{num}}</div>
     <div>Boolean: <input type="text" [(ngModel)]="bool" />{{bool}}</div>
     <div>Any: <input type="text" [(ngModel)]="objHasValue" />{{objHasValue}}</div>
@@ -47,7 +47,7 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
 
   get title() { return this.state.title; }
 
-  str: string;
+  str_global: string;
   num: number;
   bool: boolean;
   objHasValue: any = 'default value';

@@ -1,5 +1,9 @@
 import { Subscription } from 'rxjs/Subscription';
 import { Store } from './store';
+import lodash from 'lodash';
+
+const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
+const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
 
 export class StoreService {
   constructor(
@@ -25,19 +29,31 @@ export class StoreService {
 
   savePrimitiveValuesToLocalStorage(component: Object, ignores?: Object[]): void {
     let obj = {};
-    Object.keys(component).forEach(name => {
-      if (typeof component[name] === 'object') {
-        const ctorName = component[name].constructor.name;
+    let objGlobal = {};
+    Object.keys(component).forEach(key => {
+      if (key.includes('_global')) {
+        objGlobal[key] = component[key];
+      } else if (typeof component[key] === 'object') {
+        const ctorName = component[key].constructor.name;
         const ignorable = ignores && ignores.length > 0 ? ignores.some(ignore => ctorName === ignore.constructor.name) : false;
         if (!ignorable) {
-          obj[name] = component[name];
+          obj[key] = component[key];
         }
       } else {
-        obj[name] = component[name];
+        obj[key] = component[key];
       }
     });
     try {
-      window.localStorage.setItem(component.constructor.name, JSON.stringify(obj));
+      const key = LOCAL_STORAGE_KEY + '-' + component.constructor.name;
+      window.localStorage.setItem(key, JSON.stringify(obj));
+    } catch (err) {
+      console.error(err);
+    }
+    try {
+      let ls = window.localStorage.getItem(GLOBAL_LOCAL_STORAGE_KEY);
+      ls = ls ? JSON.parse(ls) : {};
+      objGlobal = lodash.defaultsDeep(objGlobal, ls);
+      window.localStorage.setItem(GLOBAL_LOCAL_STORAGE_KEY, JSON.stringify(objGlobal));
     } catch (err) {
       console.error(err);
     }
@@ -45,12 +61,17 @@ export class StoreService {
 
   loadPrimitiveValuesFromLocalStorage(component: Object): void {
     let json = '{}';
+    let jsonGlobal = '{}';
     try {
-      json = window.localStorage.getItem(component.constructor.name);
+      const key = LOCAL_STORAGE_KEY + '-' + component.constructor.name;
+      json = window.localStorage.getItem(key);
+      jsonGlobal = window.localStorage.getItem(GLOBAL_LOCAL_STORAGE_KEY);
     } catch (err) {
       console.error(err);
     }
-    const obj = JSON.parse(json) as { string?: any };
+    let obj = JSON.parse(json) as { string?: any };
+    obj = lodash.defaultsDeep(obj, JSON.parse(jsonGlobal));
+    // console.log(obj);
     Object.keys(obj).forEach(key => {
       if (!component[key]) {
         component[key] = obj[key];
