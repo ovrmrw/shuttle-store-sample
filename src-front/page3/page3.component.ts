@@ -16,7 +16,7 @@ import { Page3Service, Page3State } from './page3.service';
     <div>String: <input type="text" [(ngModel)]="str" />{{str}}</div>
     <div>Number: <input type="text" [(ngModel)]="num" />{{num}}</div>
     <div>Boolean: <input type="text" [(ngModel)]="bool" />{{bool}}</div>
-    <div>Any: <input type="text" [(ngModel)]="obj" />{{obj}}</div>
+    <div>Any: <input type="text" [(ngModel)]="objHasValue" />{{objHasValue}}</div>
   `,
   providers: [Page3Service, Page3State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -50,5 +50,5 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
   str: string;
   num: number;
   bool: boolean;
-  obj: any;
+  objHasValue: any = 'default value';
 }

@@ -51,6 +51,10 @@ export class StoreService {
       console.error(err);
     }
     const obj = JSON.parse(json) as { string?: any };
-    Object.keys(obj).forEach(key => component[key] = obj[key]);
+    Object.keys(obj).forEach(key => {
+      if (!component[key]) {
+        component[key] = obj[key];
+      }
+    });
   }
 }
