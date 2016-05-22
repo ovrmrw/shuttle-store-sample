@@ -25,8 +25,8 @@ export class Store {
   private states: StateObject[];
   private subscriptions: SubscriptionObject[] = [];
   private rule: RuleObject = {};
-  private _dispatcher$: Subject<any> = new Subject<any>(null);
-  private _localStorageKeeper$: Subject<StateObject[]> = new Subject<StateObject[]>(null);
+  private _dispatcher$: Subject<any> = new Subject<any>();
+  private _localStorageKeeper$: Subject<StateObject[]> = new Subject<StateObject[]>();
   private _returner$: BehaviorSubject<StateObject[]>;
 
   constructor() {
