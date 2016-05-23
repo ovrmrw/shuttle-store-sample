@@ -70,7 +70,7 @@ export class Store {
   setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
-    obj[identifier] = lodash.cloneDeep(data);
+    obj[identifier] = data; // lodash.cloneDeep(data);
     if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
       this.rule[identifier] = rule;
     }
