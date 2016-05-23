@@ -102,11 +102,11 @@ export class Page4Component implements OnInit, ComponentGuidelineUsingStore {
 
   timerStart() {
     if (!this.proccessing) {
-      console.log('timerStart');      
+      console.log('timerStart');
       this.proccessing = true;
-      this.startTime = lodash.now();      
+      this.startTime = lodash.now();
       this.uniqueId = '' + this.startTime + lodash.uniqueId();
-      this.endTime = null;      
+      this.endTime = null;
     }
   }
 
@@ -120,11 +120,14 @@ export class Page4Component implements OnInit, ComponentGuidelineUsingStore {
 
   get diff() { return (this.endTime - this.startTime) / 1000 }
 
+  set uniqueId(data: string) { this.service.setUniqueId(data); }
+  get uniqueId() { return this.state.uniqueId; }
+
   abc: string;
   startTime: number;
   endTime: number;
   proccessing: boolean;
-  uniqueId: string;
+  // uniqueId: string;
   chart: c3.ChartAPI;
 }
 
