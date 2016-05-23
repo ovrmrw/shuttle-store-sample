@@ -28,10 +28,10 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef
   ) { }
   ngOnInit() {
+    this.service.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
+    
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
-
-    this.service.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
   }
 
   registerSubscriptionsEveryEntrance() {
