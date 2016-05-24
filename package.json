@@ -6,14 +6,13 @@
   "scripts": {
     "postinstall": "typings install",
     "prestart": "npm run build",
-    "start": "concurrently \"npm run build:server:w\" \"npm run build:client:w\" \"npm run express\" ",
+    "start": "concurrently \"npm run build:client:w\" \"npm run build:server:w\" \"npm run express\" ",
     "build:server": "gulp compile",
     "build:server:w": "gulp watch",
     "build:client": "webpack",
     "build:client:w": "webpack --watch",
     "prebuild": "",
     "build": "concurrently \"npm run build:client\" \"npm run build:server\" ",
-    "build:w": "concurrently \"webpack --watch\" \"gulp watch\" ",
     "tslint": "tslint -c tslint.json src*/**/*.ts",
     "express": "concurrently \"node ./src-server/express.js\" \"gulp browsersync\" ",
     "test": "echo \"Error: no test specified\" && exit 1"

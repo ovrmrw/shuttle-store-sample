@@ -78,7 +78,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
             } else {
               const now = lodash.now();
               const keyInput: KeyInput = {
-                value: event['code'],
+                code: event['code'],
                 keyCode: keyCode,
                 uniqueId: this.uniqueId,
                 diff: keyCode === 65 /* keyA */ ? 0 : now - previousTime
@@ -103,7 +103,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
         .do(objs => {
           if (objs.length > 0) {
             const diffs = objs.map(obj => obj.diff / 1000); // diffの単位をミリ秒から秒に変換。
-            const letters = objs.map(obj => obj.value.charAt(3)); // ex)'KeyA'から'A'を取り出す。
+            const letters = objs.map(obj => obj.code.charAt(3)); // ex)'KeyA'から'A'を取り出す。
             this.chart.load({ // c3のグラフを更新する。
               columns: [
                 ['diff_time', ...diffs]
