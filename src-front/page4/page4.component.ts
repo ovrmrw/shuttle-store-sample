@@ -62,13 +62,13 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       // キーボード入力イベントをハンドリングする。Storeにデータを送る。
       Observable.fromEvent<KeyboardEvent>(document.getElementById('keyinput'), 'keyup')
         // .do(event => console.log(event))
-        .do(event => {
+        .do(event => { // keyAが押されると処理開始。
           if (event.keyCode === 65 /* keyA */) {
             previousTime = this.startTimer();
             previousKeyCode = 64;
           }
         })
-        .do(event => {
+        .do(event => { // 処理中のキー入力イベントをハンドリングする。
           if (this.proccessing) {
             if (event.keyCode - previousKeyCode !== 1) {
               alert('MISS INPUT!');
@@ -87,7 +87,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
             }
           }
         })
-        .do(event => {
+        .do(event => { // keyZが押されると処理終了。
           if (event.keyCode === 90 /* keyZ */) {
             this.stopTimer(true);
           }
@@ -98,18 +98,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       this.state.keyInputs$
         .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId)) // 絞り込み
         .map(objs => objs.reverse()) // 降順を昇順に反転
-        // .do(objs => { // 入力ミスがあればそこで強制終了。
-        //   console.log(objs);
-        //   objs.map(obj => obj.keyCode).forEach((keyCode, i, keyCodes) => {
-        //     if (i > 0) {
-        //       if (keyCode - keyCodes[i - 1] !== 1) {
-        //         alert('MISS INPUT! TRY AGAIN.');
-        //         this.stopTimer();
-        //       }
-        //     }
-        //   });
-        // })
-        .do(objs => {
+        .do(objs => { // 入力時間をグラフに与えて更新する。
           const diffs = objs.map(obj => obj.diff / 1000);
           this.chart.load({
             columns: [
