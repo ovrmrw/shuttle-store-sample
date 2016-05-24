@@ -6,16 +6,16 @@ import { Store, StoreService, StateRule } from '../shuttle-store';
 // Service
 @Injectable()
 export class Page1Service extends StoreService {
-  static TITLE_IDENTIFIER = ['app-title', Page1Service];
-  static COLOR_IDENTIFIER = ['color', Page1Service];
+  static _TITLE_ = ['app-title', Page1Service];
+  static _COLOR_ = ['color', Page1Service];
 
   constructor(store: Store) { super(store); }
 
-  setTitle(text: string) { this.store.setState(text, P1S.TITLE_IDENTIFIER); }
-  setColor(text: string) { this.store.setState(text, P1S.COLOR_IDENTIFIER, new StateRule({ limit: 20 })); }
+  setTitle(text: string) { this.store.setState(text, S._TITLE_); }
+  setColor(text: string) { this.store.setState(text, S._COLOR_, new StateRule({ limit: 20 })); }
 }
 
-const P1S = Page1Service; // shorthand
+const S = Page1Service; // shorthand
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)
@@ -23,9 +23,9 @@ const P1S = Page1Service; // shorthand
 export class Page1State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.getState<string>(P1S.TITLE_IDENTIFIER); }
-  get titles$() { return this.store.getStates$<string>(P1S.TITLE_IDENTIFIER); }
-  get titleReplayStream$$() { return this.store.getPresetReplayStream$<string>(P1S.TITLE_IDENTIFIER, null, 25); }
+  get title() { return this.store.getState<string>(S._TITLE_); }
+  get titles$() { return this.store.getStates$<string>(S._TITLE_); }
+  get titleReplayStream$$() { return this.store.getPresetReplayStream$<string>(S._TITLE_, null, 25); }
 
-  get colorsReplayStream$$() { return this.store.getPresetReplayArrayStream$<string>(P1S.COLOR_IDENTIFIER, null, 100, true); }
+  get colorsReplayStream$$() { return this.store.getPresetReplayArrayStream$<string>(S._COLOR_, null, 100, true); }
 }

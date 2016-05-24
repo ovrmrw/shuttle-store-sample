@@ -19,6 +19,8 @@ type RuleObject = { string?: StateRule };
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
+const IDENTIFIER_PREFIX = '#';
+const TIMESTAMP = 'timestamp';
 
 @Injectable()
 export class Store {
@@ -30,19 +32,18 @@ export class Store {
   private _returner$: BehaviorSubject<StateObject[]>;
 
   constructor() {
-    let ls: any = null;
+    let objFromLS: StateObject[] = [];
     try {
       console.time('localStorageGetItem');
-      ls = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+      objFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
       console.timeEnd('localStorageGetItem');
     } catch (err) {
       console.error(err);
     }
-    this.states = ls ? JSON.parse(ls) : [];
+    this.states = objFromLS;
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
-      // .debounceTime(100) // ここにdebounceTimeを入れると全てmarkForCheckが必要になる。Viewまで含めて途端に扱いが難しくなる。
       .subscribe(newState => {
         this.states.push(newState);
         // this.states = gabageCollector(this.states, this.rule);
@@ -67,14 +68,17 @@ export class Store {
       });
   }
 
-  setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): void {
+  // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
+  setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): ReturnOfSetState {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
-    obj[identifier] = data; // lodash.cloneDeep(data);
+    obj[identifier] = lodash.cloneDeep(data);
+    obj[TIMESTAMP] = lodash.now();
     if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
       this.rule[identifier] = rule;
     }
     this._dispatcher$.next(obj);
+    return { state: obj, rule: rule, log: loggerForSetState };
   }
 
   getStates<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
@@ -286,7 +290,7 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
 }
 
 function generateIdentifier(nameables: Nameable[]): string {
-  let ary: string[] = [];
+  let ary: string[] = [IDENTIFIER_PREFIX];
 
   nameables.reduce((p: string[], nameable) => {
     if (nameable && typeof nameable === 'string') {
@@ -306,10 +310,18 @@ function generateIdentifier(nameables: Nameable[]): string {
 
 function pickValueFromObject<T>(obj: { string?: T }): T {
   try {
-    return lodash.values(obj)[0] as T;
+    const key = Object.keys(obj).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
+    return obj[key] as T;
   } catch (err) {
     return obj as T;
   }
+}
+
+function loggerForSetState(message?: string) {
+  if (message) { console.log('===== ' + message + ' ====='); }
+  let obj = {};
+  Object.keys(this).filter(key => key !== 'log').forEach(key => obj[key] = this[key]);
+  console.log(obj);
 }
 
 
@@ -329,4 +341,10 @@ export class StateRule {
 
 interface StateRuleOptions {
   limit?: number;
+}
+
+interface ReturnOfSetState {
+  state: StateObject,
+  rule: StateRule,
+  log: (string?) => void
 }

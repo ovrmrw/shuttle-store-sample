@@ -2,7 +2,7 @@ export const dummy = '';
 
 export interface KeyInput {
   value: string;
-  time: number;
+  keyCode: number;
   uniqueId: string;
-  diff?: number;
+  diff: number;
 }

@@ -18,5 +18,5 @@ export class Page3Service extends StoreService {
 export class Page3State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.getState<string>(P1S.TITLE_IDENTIFIER); }
+  get title() { return this.store.getState<string>(P1S._TITLE_); }
 }

@@ -4,20 +4,20 @@ import { Store, StoreService, StateRule } from '../shuttle-store';
 import { Page1Service as P1S } from '../services.ref';
 import { KeyInput } from '../types.ref';
 
-const _KEYINPUT_ = ['keyinput', Page4Service];
-const _UNIQUEID_ = ['uniqueid', Page4Service];
-
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
 export class Page4Service extends StoreService {
+  static _KEYINPUT_ = ['keyinput', Page4Service];
+  static _UNIQUEID_ = ['uniqueid', Page4Service];
+
   constructor(store: Store) { super(store); }
 
-  setKeyInput(data: KeyInput) { this.store.setState(data, _KEYINPUT_, new StateRule({ limit: 100 })); }
-  setUniqueId(data: string) { this.store.setState(data, _UNIQUEID_); }
+  setKeyInput(data: KeyInput) { return this.store.setState(data, S._KEYINPUT_, new StateRule({ limit: 100 })); }
+  setUniqueId(data: string) { return this.store.setState(data, S._UNIQUEID_); }
 }
 
-// const P3S = Page3Service; // shorthand
+const S = Page4Service; // shorthand
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)
@@ -25,9 +25,9 @@ export class Page4Service extends StoreService {
 export class Page4State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.getState<string>(P1S.TITLE_IDENTIFIER); }
+  get title() { return this.store.getState<string>(P1S._TITLE_); }
 
-  get keyInputs$() { return this.store.getStates$<KeyInput>(_KEYINPUT_); }
+  get keyInputs$() { return this.store.getStates$<KeyInput>(S._KEYINPUT_); }
 
-  get uniqueId() { return this.store.getState<string>(_UNIQUEID_); }
+  get uniqueId() { return this.store.getState<string>(S._UNIQUEID_); }
 }

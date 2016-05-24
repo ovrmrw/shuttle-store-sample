@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, AfterViewInit } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 import c3 from 'c3';
 import lodash from 'lodash';
@@ -14,26 +14,28 @@ import { KeyInput } from '../types.ref';
   template: `
     <h2>{{title}} - PAGE4</h2>
     <hr />
-    <div>Aを押すとグラフ描画が始まり、ピリオドを押すと終わる。abcdefghijklmnopqrstuvwxyz,.の入力速度を計るようにしたい。実装中。</div>
+    <div>Aを押すとグラフ描画が始まり、Zを押すと終わる。AからZまでの入力速度を計るようにしたい。グラフY軸の単位は秒。実装中。</div>
     <hr />
-    <div>ABC: <input type="text" [(ngModel)]="abc" id="keyinput" /></div>
+    <div>Input A～Z: <input type="text" [(ngModel)]="text" id="keyinput" /></div>
+    <div *ngIf="textFinished">Finished: {{textFinished}}</div>
+    <div *ngIf="textMissed">Missed: {{textMissed}}</div>
     <hr />
     <div>Start: {{startTime}}</div>
     <div>End: {{endTime}}</div>
-    <div>Diff: {{diff}}</div>
+    <div>Result: {{result}}</div>
     <div id="chart"></div>
   `,
   providers: [Page4Service, Page4State],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class Page4Component implements OnInit, ComponentGuidelineUsingStore {
+export class Page4Component implements OnInit, AfterViewInit, ComponentGuidelineUsingStore {
   constructor(
     private service: Page4Service,
     private state: Page4State,
     private cd: ChangeDetectorRef
   ) { }
   ngOnInit() {
-    // this.service.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
+    // c3のグラフを準備する。
     this.chart = c3.generate({
       bindto: '#chart',
       data: {
@@ -47,44 +49,66 @@ export class Page4Component implements OnInit, ComponentGuidelineUsingStore {
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
   }
+  ngAfterViewInit() {
+    document.getElementById('keyinput').focus();
+  }
 
   registerSubscriptionsEveryEntrance() {
     let previousTime: number;
+    let previousKeyCode: number;
 
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
+      // キーボード入力イベントをハンドリングする。Storeにデータを送る。
       Observable.fromEvent<KeyboardEvent>(document.getElementById('keyinput'), 'keyup')
-        .do(event => console.log(event))
+        // .do(event => console.log(event))
         .do(event => {
-          if (event.keyCode === 65 /* a */) {
-            this.timerStart();
-            previousTime = this.startTime;
+          if (event.keyCode === 65 /* keyA */) {
+            previousTime = this.startTimer();
+            previousKeyCode = 64;
           }
         })
         .do(event => {
           if (this.proccessing) {
-            const now = lodash.now();
-            const keyInput: KeyInput = {
-              value: event['code'],
-              time: now,
-              uniqueId: this.uniqueId,
-              diff: now - previousTime
-            };
-            console.log(keyInput);
-            this.service.setKeyInput(keyInput);
-            previousTime = now;
+            if (event.keyCode - previousKeyCode !== 1) {
+              alert('MISS INPUT!');
+              this.stopTimer();
+            } else {
+              const now = lodash.now();
+              const keyInput: KeyInput = {
+                value: event['code'],
+                keyCode: event.keyCode,
+                uniqueId: this.uniqueId,
+                diff: event.keyCode === 65 /* keyA */ ? 0 : now - previousTime
+              };
+              this.service.setKeyInput(keyInput).log('KeyInput'); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
+              previousTime = now;
+              previousKeyCode = event.keyCode;
+            }
           }
         })
         .do(event => {
-          if (event.keyCode === 190 /* period */) {
-            this.timerStop();
+          if (event.keyCode === 90 /* keyZ */) {
+            this.stopTimer(true);
           }
         })
-        .subscribe(),
+        .subscribe(() => this.cd.markForCheck()),
 
+      // Storeからデータを受け取ってグラフを更新する。キーボード入力がトリガーとなりリアルタイムに更新される。
       this.state.keyInputs$
-        .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId))
-        .map(objs => objs.reverse())
+        .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId)) // 絞り込み
+        .map(objs => objs.reverse()) // 降順を昇順に反転
+        // .do(objs => { // 入力ミスがあればそこで強制終了。
+        //   console.log(objs);
+        //   objs.map(obj => obj.keyCode).forEach((keyCode, i, keyCodes) => {
+        //     if (i > 0) {
+        //       if (keyCode - keyCodes[i - 1] !== 1) {
+        //         alert('MISS INPUT! TRY AGAIN.');
+        //         this.stopTimer();
+        //       }
+        //     }
+        //   });
+        // })
         .do(objs => {
           const diffs = objs.map(obj => obj.diff / 1000);
           this.chart.load({
@@ -93,41 +117,49 @@ export class Page4Component implements OnInit, ComponentGuidelineUsingStore {
             ]
           });
         })
-        .do(objs => console.log(objs))
         .subscribe(() => this.cd.markForCheck()),
     ];
   }
 
   get title() { return this.state.title; }
 
-  timerStart() {
+  startTimer(): number {
     if (!this.proccessing) {
-      console.log('timerStart');
+      console.log('Start Timer');
       this.proccessing = true;
-      this.startTime = lodash.now();
       this.uniqueId = '' + this.startTime + lodash.uniqueId();
+      this.startTime = lodash.now();
       this.endTime = null;
+      this.textFinished = null;
     }
+    return this.startTime;
   }
 
-  timerStop() {
+  stopTimer(valid?: boolean): void {
     if (this.proccessing) {
-      console.log('timerStop');
-      this.endTime = lodash.now();
+      console.log('Stop Timer');
+      if (valid) {
+        this.endTime = lodash.now();
+        this.textFinished = this.text;
+        this.textMissed = null;
+      } else {
+        this.textMissed = this.text;
+      }
+      this.text = null;
       this.proccessing = false;
     }
   }
 
-  get diff() { return (this.endTime - this.startTime) / 1000 }
+  get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 'sec.' : null; }
 
-  set uniqueId(data: string) { this.service.setUniqueId(data); }
+  set uniqueId(data: string) { this.service.setUniqueId(data).log('UniqueId'); }
   get uniqueId() { return this.state.uniqueId; }
 
-  abc: string;
+  text: string;
+  textFinished: string;
+  textMissed: string;
   startTime: number;
   endTime: number;
   proccessing: boolean;
-  // uniqueId: string;
   chart: c3.ChartAPI;
 }
-
