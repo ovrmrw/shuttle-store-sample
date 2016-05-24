@@ -32,15 +32,15 @@ export class Store {
   private _returner$: BehaviorSubject<StateObject[]>;
 
   constructor() {
-    let objFromLS: StateObject[];
+    let objsFromLS: StateObject[];
     try {
       console.time('localStorageGetItem');
-      objFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+      objsFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
       console.timeEnd('localStorageGetItem');
     } catch (err) {
       console.error(err);
     }
-    this.states = objFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
+    this.states = objsFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
@@ -71,13 +71,13 @@ export class Store {
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): Logger {
     const identifier = generateIdentifier(nameablesAsIdentifier);
-    let obj = {};
+    let obj = {}; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
-    obj[TIMESTAMP] = lodash.now();
+    obj[TIMESTAMP] = lodash.now(); // TODO:timestampを使って何かする。
     if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
       this.rule[identifier] = rule;
     }
-    this._dispatcher$.next(obj);
+    this._dispatcher$.next(obj); // dispatcherをsubscribeしている全てのSubscriberをキックする。
     return new Logger(obj, rule);
   }
 
@@ -341,9 +341,15 @@ class Logger {
   constructor(private state: StateObject, private rule: StateRule) { }
 
   log(message?: string) {
-    if (message) { console.log('===== ' + message + ' ====='); }
-    let obj = {};
-    Object.keys(this).filter(key => key !== 'log').forEach(key => obj[key] = this[key]);
+    if (message) {
+      console.log('===== State: ' + message + ' =====');
+    } else {
+      console.log('===== State =====');
+    }
+    const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
+      p[key] = this[key];
+      return p;
+    }, {});
     console.log(obj);
   }
 }

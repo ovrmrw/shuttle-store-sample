@@ -27,6 +27,7 @@ export class StoreService {
     this.store.clearStatesAndLocalStorage();
   }
 
+  // NOT RECOMMENDED TO USE
   savePrimitiveValuesToLocalStorage(component: Object, ignores?: Object[]): void {
     let obj = {};
     let objGlobal = {};
@@ -59,6 +60,7 @@ export class StoreService {
     }
   }
 
+  // NOT RECOMMENDED TO USE
   loadPrimitiveValuesFromLocalStorage(component: Object): void {
     let json = '{}';
     let jsonGlobal = '{}';

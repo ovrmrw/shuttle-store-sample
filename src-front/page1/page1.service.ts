@@ -11,8 +11,8 @@ export class Page1Service extends StoreService {
 
   constructor(store: Store) { super(store); }
 
-  setTitle(text: string) { this.store.setState(text, S._TITLE_); }
-  setColor(text: string) { this.store.setState(text, S._COLOR_, new StateRule({ limit: 20 })); }
+  setTitle(data: string) { return this.store.setState(data, S._TITLE_); }
+  setColor(data: string) { return this.store.setState(data, S._COLOR_, new StateRule({ limit: 20 })); }
 }
 
 const S = Page1Service; // shorthand

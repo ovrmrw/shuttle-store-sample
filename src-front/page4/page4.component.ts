@@ -46,7 +46,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       axis: { x: { type: 'category' } }
       // transition: { duration: 100 }
     });
-
+    // -----
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
   }
@@ -62,7 +62,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     this.service.disposableSubscriptions = [
       // キーボード入力イベントをハンドリングする。Storeにデータを送る。
       Observable.fromEvent<KeyboardEvent>(document.getElementById('keyinput'), 'keyup')
-        .do(event => console.log(event))
+        // .do(event => console.log(event))
         .do(event => { // keyAが押されると処理開始。          
           if (!this.proccessing && event.keyCode === 65 /* keyA */) {
             previousTime = this.startTimer();
@@ -73,7 +73,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
           if (this.proccessing) {
             const keyCode = event.keyCode;
             if (keyCode - previousKeyCode !== 1) {
-              alert('MISS INPUT! TRY AGAIN.');
+              alert('OOPS! TRY AGAIN.');
               this.stopTimer();
             } else {
               const now = lodash.now();
@@ -137,6 +137,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
         this.endTime = lodash.now();
         this.textFinished = this.text;
         this.textMissed = null;
+        alert('COMPLETED! ' + this.result);
       } else {
         this.textMissed = this.text;
       }

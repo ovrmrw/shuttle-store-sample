@@ -12,6 +12,7 @@ import { Page3Service, Page3State } from './page3.service';
     <h2>{{title}} - PAGE3</h2>
     <hr />
     <h3>A very simple way to save input values and load them when you re-enter this page. (NOT USING STORE, BUT JUST LOCALSTORAGE)</h3>
+    <h1>DEPRECATED</h1>
     <hr />
     <div>String: <input type="text" [(ngModel)]="str_global" />{{str_global}}</div>
     <div>Number: <input type="text" [(ngModel)]="num" />{{num}}</div>
@@ -29,7 +30,7 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
   ngOnInit() {
     this.service.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
-    
+    // -----
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
   }
