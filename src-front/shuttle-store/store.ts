@@ -32,7 +32,7 @@ export class Store {
   private _returner$: BehaviorSubject<StateObject[]>;
 
   constructor() {
-    let objFromLS: StateObject[] = [];
+    let objFromLS: StateObject[];
     try {
       console.time('localStorageGetItem');
       objFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -40,7 +40,7 @@ export class Store {
     } catch (err) {
       console.error(err);
     }
-    this.states = objFromLS;
+    this.states = objFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
@@ -69,7 +69,7 @@ export class Store {
   }
 
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
-  setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): ReturnOfSetState {
+  setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): Logger {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
     obj[identifier] = lodash.cloneDeep(data);
@@ -78,7 +78,7 @@ export class Store {
       this.rule[identifier] = rule;
     }
     this._dispatcher$.next(obj);
-    return { state: obj, rule: rule, log: loggerForSetState };
+    return new Logger(obj, rule);
   }
 
   getStates<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
@@ -103,12 +103,8 @@ export class Store {
   getStates$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     return this._returner$
-      .map(objs => {
-        return objs.filter(obj => obj && identifier in obj);
-      })
-      .map(objs => {
-        return objs.map(obj => pickValueFromObject(obj));
-      })
+      .map(objs => objs.filter(obj => obj && identifier in obj))
+      .map(objs => objs.map(obj => pickValueFromObject(obj)))
       .map(states => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
         return states.reverse().slice(0, _limit) as T[];
@@ -195,13 +191,15 @@ export class Store {
     } catch (err) {
       console.error(err);
     }
-    this.states = null;
-    this.states = [];
+    this.states = null; // メモリ解放。
+    this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
     this._dispatcher$.next(null);
   }
 }
 
 
+////////////////////////////////////////////////////////////////////////////
+// Helper Functions
 function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, maxElementsByKey: number = DEFAULT_LIMIT): StateObject[] {
   console.time('gabageCollector');
   const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
@@ -317,13 +315,6 @@ function pickValueFromObject<T>(obj: { string?: T }): T {
   }
 }
 
-function loggerForSetState(message?: string) {
-  if (message) { console.log('===== ' + message + ' ====='); }
-  let obj = {};
-  Object.keys(this).filter(key => key !== 'log').forEach(key => obj[key] = this[key]);
-  console.log(obj);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////
 // StateRule Class
@@ -343,8 +334,16 @@ interface StateRuleOptions {
   limit?: number;
 }
 
-interface ReturnOfSetState {
-  state: StateObject,
-  rule: StateRule,
-  log: (string?) => void
+
+////////////////////////////////////////////////////////////////////////////
+// Logger Class
+class Logger {
+  constructor(private state: StateObject, private rule: StateRule) { }
+
+  log(message?: string) {
+    if (message) { console.log('===== ' + message + ' ====='); }
+    let obj = {};
+    Object.keys(this).filter(key => key !== 'log').forEach(key => obj[key] = this[key]);
+    console.log(obj);
+  }
 }

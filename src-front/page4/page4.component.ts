@@ -40,9 +40,10 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       bindto: '#chart',
       data: {
         columns: [
-          ['data1'],
+          ['diff_time'],
         ]
       },
+      axis: { x: { type: 'category' } }
       // transition: { duration: 100 }
     });
 
@@ -61,34 +62,35 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     this.service.disposableSubscriptions = [
       // キーボード入力イベントをハンドリングする。Storeにデータを送る。
       Observable.fromEvent<KeyboardEvent>(document.getElementById('keyinput'), 'keyup')
-        // .do(event => console.log(event))
-        .do(event => { // keyAが押されると処理開始。
-          if (event.keyCode === 65 /* keyA */) {
+        .do(event => console.log(event))
+        .do(event => { // keyAが押されると処理開始。          
+          if (!this.proccessing && event.keyCode === 65 /* keyA */) {
             previousTime = this.startTimer();
             previousKeyCode = 64;
           }
         })
         .do(event => { // 処理中のキー入力イベントをハンドリングする。
           if (this.proccessing) {
-            if (event.keyCode - previousKeyCode !== 1) {
-              alert('MISS INPUT!');
+            const keyCode = event.keyCode;
+            if (keyCode - previousKeyCode !== 1) {
+              alert('MISS INPUT! TRY AGAIN.');
               this.stopTimer();
             } else {
               const now = lodash.now();
               const keyInput: KeyInput = {
                 value: event['code'],
-                keyCode: event.keyCode,
+                keyCode: keyCode,
                 uniqueId: this.uniqueId,
-                diff: event.keyCode === 65 /* keyA */ ? 0 : now - previousTime
+                diff: keyCode === 65 /* keyA */ ? 0 : now - previousTime
               };
               this.service.setKeyInput(keyInput).log('KeyInput'); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
               previousTime = now;
-              previousKeyCode = event.keyCode;
+              previousKeyCode = keyCode;
             }
           }
         })
         .do(event => { // keyZが押されると処理終了。
-          if (event.keyCode === 90 /* keyZ */) {
+          if (this.proccessing && event.keyCode === 90 /* keyZ */) {
             this.stopTimer(true);
           }
         })
@@ -98,15 +100,19 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       this.state.keyInputs$
         .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId)) // 絞り込み
         .map(objs => objs.reverse()) // 降順を昇順に反転
-        .do(objs => { // 入力時間をグラフに与えて更新する。
-          const diffs = objs.map(obj => obj.diff / 1000);
-          this.chart.load({
-            columns: [
-              ['data1', ...diffs]
-            ]
-          });
+        .do(objs => {
+          if (objs.length > 0) {
+            const diffs = objs.map(obj => obj.diff / 1000); // diffの単位をミリ秒から秒に変換。
+            const letters = objs.map(obj => obj.value.charAt(3)); // ex)'KeyA'から'A'を取り出す。
+            this.chart.load({ // c3のグラフを更新する。
+              columns: [
+                ['diff_time', ...diffs]
+              ],
+              categories: letters,
+            });
+          }
         })
-        .subscribe(() => this.cd.markForCheck()),
+        .subscribe(),
     ];
   }
 
@@ -117,7 +123,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       console.log('Start Timer');
       this.proccessing = true;
       this.startTime = lodash.now();
-      this.uniqueId = '' + this.startTime + lodash.uniqueId();      
+      this.uniqueId = '' + this.startTime + lodash.uniqueId();
       this.endTime = null;
       this.textFinished = null;
     }
@@ -139,7 +145,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     }
   }
 
-  get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 'sec.' : null; }
+  get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
 
   set uniqueId(data: string) { this.service.setUniqueId(data).log('UniqueId'); }
   get uniqueId() { return this.state.uniqueId; }
