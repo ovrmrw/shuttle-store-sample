@@ -116,8 +116,8 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     if (!this.proccessing) {
       console.log('Start Timer');
       this.proccessing = true;
-      this.uniqueId = '' + this.startTime + lodash.uniqueId();
       this.startTime = lodash.now();
+      this.uniqueId = '' + this.startTime + lodash.uniqueId();      
       this.endTime = null;
       this.textFinished = null;
     }
