@@ -11,6 +11,7 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import 'rxjs/add/observable/from';
 // import 'rxjs/add/operator/do';
 import lodash from 'lodash';
+// import moment from 'moment';
 
 type Nameable = Function | Object | string;
 type StateObject = { string?: any, timestamp: number };
@@ -34,7 +35,7 @@ export class Store {
   private _returner$: BehaviorSubject<StateObject[]>;
 
   // サスペンドで使う変数群。
-  private suspending: boolean = false;
+  private isSuspending: boolean = false;
   private tempStates: StateObject[] = [];
   private tempSubscriptions: SubscriptionObject[] = [];
   private tempRule: RuleObject = {};
@@ -78,20 +79,20 @@ export class Store {
 
   // サスペンドモードに入る
   suspend() {
-    this.suspending = true;
+    this.isSuspending = true;
   }
 
   // サスペンドモードから戻る
   revertSuspend() {
-    if (this.suspending) {
+    if (this.isSuspending) {
       Object.keys(this.tempRule).forEach(key => this.rule[key] = this.tempRule[key]);
       this.tempRule = {};
-      this.tempStates.forEach(obj => this._dispatcher$.next(obj));
+      this.tempStates.forEach(obj => this.states.push(obj));
       this.tempStates = [];
       this.tempSubscriptions.forEach(obj => this.subscriptions.push(obj));
       this.tempSubscriptions = [];
+      this.isSuspending = false;
       this._dispatcher$.next(null);
-      this.suspending = false;
     }
   }
 
@@ -103,12 +104,12 @@ export class Store {
   }
 
   rollback(targetTimestamp: number, withCommit?: boolean) {
-    if (!this.suspending) {
+    if (!this.isSuspending) {
       this.suspend();
     }
-    if (this.suspending) {
+    if (this.isSuspending) {
       this.takeSnapShot();
-      this.states = this.states.filter(obj => obj.timestamp <= targetTimestamp);
+      this.states =  this.states.slice(0, -1);
     }
     if (withCommit) {
       this.revertSuspend();
@@ -116,7 +117,7 @@ export class Store {
   }
 
   revertRollback(withCommit?: boolean) {
-    if (!this.suspending) {
+    if (!this.isSuspending) {
       this.suspend();
     }
     if (this.snapShots.length > 0) {
@@ -136,7 +137,7 @@ export class Store {
     obj[identifier] = lodash.cloneDeep(data);
     obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
 
-    if (!this.suspending) {
+    if (!this.isSuspending) {
       if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
         this.rule[identifier] = rule;
       }
@@ -231,7 +232,7 @@ export class Store {
     let obj = {};
     obj[identifier] = subscription;
 
-    if (!this.suspending) {
+    if (!this.isSuspending) {
       this.subscriptions.push(obj);
     } else { // サスペンドモードのとき。
       this.tempSubscriptions.push(obj);
@@ -291,6 +292,7 @@ function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, ma
       objs.forEach(obj => newObjs.push(obj));
     }
   });
+  newObjs = newObjs.sort((a, b) => a.timestamp > b.timestamp ? 1 : -1); // タイムスタンプの昇順で並べ替える。
   console.timeEnd('gabageCollector');
   return newObjs;
 }
@@ -305,7 +307,8 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
   for (let i = 0; i < stateObjects.length; i = (i + 1) | 0) {
     const stateObject = stateObjects[i];
     if (stateObject && typeof stateObject === 'object') {
-      keys.push(Object.keys(stateObject)[0]);
+      const key = Object.keys(stateObject).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
+      keys.push(key);
     }
     // i = (i + 1) | 0;
   }
@@ -330,7 +333,7 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
     // let k = 0;
     for (let k = 0; k < stateObjects.length; k = (k + 1) | 0) {
       const stateObject = stateObjects[k];
-      if (identifier in stateObject) {
+      if (stateObject && identifier in stateObject) {
         objs.push(stateObject);
       }
       // k = (k + 1) | 0;
@@ -357,6 +360,7 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
     }
     // j = (j + 1) | 0;
   }
+  newObjs = newObjs.sort((a, b) => a.timestamp > b.timestamp ? 1 : -1); // タイムスタンプの昇順で並べ替える。
   console.timeEnd('gabageCollectorFastTuned');
   return newObjs;
 }

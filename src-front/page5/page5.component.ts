@@ -14,14 +14,15 @@ import { Page5Service, Page5State } from './page5.service';
     <hr />
     <div>ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。</div>
     <hr />
-    <div>FirstName: <input type="text" [(ngModel)]="_$form.firstName" /></div>
-    <div>LastName: <input type="text" [(ngModel)]="_$form.lastName" /></div>
-    <div>Age: <input type="number" [(ngModel)]="_$form.age" /></div>
-    <div>Gender: <input type="text" [(ngModel)]="_$form.gender" /></div>
-    <div>Address: <input type="text" [(ngModel)]="_$form.address" /></div>
-    <div>Tel: <input type="text" [(ngModel)]="_$form.tel" /></div>
-    <div>Fax: <input type="text" [(ngModel)]="_$form.fax" /></div>
+    <div>FirstName: <input type="text" [(ngModel)]="firstName" /></div>
+    <div>LastName: <input type="text" [(ngModel)]="lastName" /></div>
+    <div>Age: <input type="number" [(ngModel)]="age" /></div>
+    <div>Gender: <input type="text" [(ngModel)]="gender" /></div>
+    <div>Address: <input type="text" [(ngModel)]="address" /></div>
+    <div>Tel: <input type="text" [(ngModel)]="tel" /></div>
+    <div>Fax: <input type="text" [(ngModel)]="fax" /></div>
     <div><button (click)="clearForm()">Clear Form</button></div>
+    <div><button (click)="rollback()">Rollback</button></div>
     <hr />
     <h3>Replay</h3>
     <div>{{_$formReplay | json}}</div>
@@ -36,6 +37,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef
   ) { }
   ngOnInit() {
+    // this._$form = new FormData();
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
   }
@@ -46,13 +48,30 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(document.getElementsByTagName('sg-page5'), 'keyup')
         .debounceTime(250)
-        .do(() => this.service.setForm(this._$form).log('Form'))
+        .do(() => {
+          const form: FormData = {
+            firstName: this.firstName,
+            lastName: this.lastName,
+            age: this.age,
+            address: this.address,
+            tel: this.tel,
+            fax: this.fax,
+            gender: this.gender
+          }
+          this.service.setForm(form).log('Form');
+        })
         .subscribe(() => this.cd.markForCheck()),
 
       // StoreからフォームのStateを受け取る。
       this.state.form$
-        .do(form => this._$form = form)
-        .subscribe(),
+        .do(form => {
+          if (form) {
+            Object.keys(form).forEach(key => this[key] = form[key])
+          } else {
+            // Object.keys(this).forEach(key => this[key] = null);
+          }
+        })
+        .subscribe(() => this.cd.markForCheck()),
 
       // 入力した履歴をリプレイ。特に意味はない。
       this.state.formReplayStream$$
@@ -65,21 +84,41 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     this.service.setForm(new FormData()).log('Initialize Form')
   }
 
+  rollback() {
+    this.service.rollback(null, { withCommit: true });
+  }
+
   get title() { return this.state.title; }
 
-  private _$form: FormData = new FormData();
+  // private _$form: FormData = new FormData();
   private _$formReplay: FormData;
+  firstName: string;
+  lastName: string;
+  age: number;
+  address: string;
+  gender: string;
+  tel: string;
+  fax: string;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 // FormData Class
-export class FormData {
-  firstName: string;
-  lastName: string;
-  age: number;
-  address: string;
-  tel: string;
-  fax: string;
-  gender: string;
+// export class FormData {
+//   firstName: string = '';
+//   lastName: string = '';
+//   age: number = null;
+//   address: string = '';
+//   tel: string = '';
+//   fax: string = '';
+//   gender: string = '';
+// }
+export interface FormData {
+  firstName?: string;
+  lastName?: string;
+  age?: number;
+  address?: string;
+  tel?: string;
+  fax?: string;
+  gender?: string;
 }
