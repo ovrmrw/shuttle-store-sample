@@ -13,23 +13,31 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 type Nameable = Function | Object | string;
-type StateObject = { string?: any };
+type StateObject = { string?: any, timestamp: number };
 type SubscriptionObject = { string?: Subscription };
 type RuleObject = { string?: StateRule };
+type SnapShot = StateObject[];
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
 const IDENTIFIER_PREFIX = '#';
-const TIMESTAMP = 'timestamp';
+// const TIMESTAMP = 'timestamp';
 
 @Injectable()
 export class Store {
   private states: StateObject[];
   private subscriptions: SubscriptionObject[] = [];
   private rule: RuleObject = {};
+  private snapShots: SnapShot[] = [];
   private _dispatcher$: Subject<any> = new Subject<any>();
   private _localStorageKeeper$: Subject<StateObject[]> = new Subject<StateObject[]>();
   private _returner$: BehaviorSubject<StateObject[]>;
+
+  // サスペンドで使う変数群。
+  private suspending: boolean = false;
+  private tempStates: StateObject[] = [];
+  private tempSubscriptions: SubscriptionObject[] = [];
+  private tempRule: RuleObject = {};
 
   constructor() {
     let objsFromLS: StateObject[];
@@ -68,16 +76,77 @@ export class Store {
       });
   }
 
+  // サスペンドモードに入る
+  suspend() {
+    this.suspending = true;
+  }
+
+  // サスペンドモードから戻る
+  revertSuspend() {
+    if (this.suspending) {
+      Object.keys(this.tempRule).forEach(key => this.rule[key] = this.tempRule[key]);
+      this.tempRule = {};
+      this.tempStates.forEach(obj => this._dispatcher$.next(obj));
+      this.tempStates = [];
+      this.tempSubscriptions.forEach(obj => this.subscriptions.push(obj));
+      this.tempSubscriptions = [];
+      this._dispatcher$.next(null);
+      this.suspending = false;
+    }
+  }
+
+  takeSnapShot() {
+    if (this.suspend) {
+      const objs = lodash.cloneDeep(this.states);
+      this.snapShots.push(objs);
+    }
+  }
+
+  rollback(targetTimestamp: number, withCommit?: boolean) {
+    if (!this.suspending) {
+      this.suspend();
+    }
+    if (this.suspending) {
+      this.takeSnapShot();
+      this.states = this.states.filter(obj => obj.timestamp <= targetTimestamp);
+    }
+    if (withCommit) {
+      this.revertSuspend();
+    }
+  }
+
+  revertRollback(withCommit?: boolean) {
+    if (!this.suspending) {
+      this.suspend();
+    }
+    if (this.snapShots.length > 0) {
+      const objs = this.snapShots.reverse()[0];
+      this.states = objs;
+    }
+    if (withCommit) {
+      this.revertSuspend();
+    }
+  }
+
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
+  // Suspendモードの間はdispatcherに値を送らないように制御している。
   setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): Logger {
     const identifier = generateIdentifier(nameablesAsIdentifier);
-    let obj = {}; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
+    let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
-    obj[TIMESTAMP] = lodash.now(); // TODO:timestampを使って何かする。
-    if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
-      this.rule[identifier] = rule;
+    obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
+
+    if (!this.suspending) {
+      if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
+        this.rule[identifier] = rule;
+      }
+      this._dispatcher$.next(obj); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+    } else { // サスペンドモードのとき。      
+      if (rule) {
+        this.tempRule[identifier] = rule;
+      }
+      this.tempStates.push(obj);
     }
-    this._dispatcher$.next(obj); // dispatcherをsubscribeしている全てのSubscriberをキックする。
     return new Logger(obj, rule);
   }
 
@@ -161,7 +230,12 @@ export class Store {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
     obj[identifier] = subscription;
-    this.subscriptions.push(obj);
+
+    if (!this.suspending) {
+      this.subscriptions.push(obj);
+    } else { // サスペンドモードのとき。
+      this.tempSubscriptions.push(obj);
+    }
   }
 
   disposeSubscriptions(nameablesAsIdentifier: Nameable[] = [this]): void {

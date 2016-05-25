@@ -27,6 +27,24 @@ export class StoreService {
     this.store.clearStatesAndLocalStorage();
   }
 
+  // 引数のタイムスタンプまでStateを戻す。つまりUndo。
+  rollback(targetTimestamp: number, withCommit?: boolean) {
+    this.store.rollback(targetTimestamp, withCommit);
+  }
+
+  // Rollbackを元に戻す。つまりRedo。
+  revertRollback(withCommit: boolean) {
+    this.store.revertRollback(withCommit);
+  }
+
+  // サスペンドモードのままになっている場合、元に戻さないとComponentにPushが来ない。
+  revertSuspend() {
+    this.store.revertSuspend();
+  }
+
+
+
+  // DEPRECATED
   // NOT RECOMMENDED TO USE
   savePrimitiveValuesToLocalStorage(component: Object, ignores?: Object[]): void {
     let obj = {};
@@ -60,6 +78,7 @@ export class StoreService {
     }
   }
 
+  // DEPRECATED
   // NOT RECOMMENDED TO USE
   loadPrimitiveValuesFromLocalStorage(component: Object): void {
     let json = '{}';
