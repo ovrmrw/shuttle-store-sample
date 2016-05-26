@@ -14,15 +14,17 @@ import { Page5Service, Page5State } from './page5.service';
     <hr />
     <div>ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。</div>
     <hr />
-    <div>FirstName: <input type="text" [(ngModel)]="firstName" /></div>
-    <div>LastName: <input type="text" [(ngModel)]="lastName" /></div>
-    <div>Age: <input type="number" [(ngModel)]="age" /></div>
-    <div>Gender: <input type="text" [(ngModel)]="gender" /></div>
-    <div>Address: <input type="text" [(ngModel)]="address" /></div>
-    <div>Tel: <input type="text" [(ngModel)]="tel" /></div>
-    <div>Fax: <input type="text" [(ngModel)]="fax" /></div>
+    <div>FirstName: <input type="text" [(ngModel)]="form.firstName" /></div>
+    <div>LastName: <input type="text" [(ngModel)]="form.lastName" /></div>
+    <div>Age: <input type="number" [(ngModel)]="form.age" /></div>
+    <div>Gender: <input type="text" [(ngModel)]="form.gender" /></div>
+    <div>ZipCode: <input type="text" [(ngModel)]="form.address.zipCode" /></div>
+    <div>Street: <input type="text" [(ngModel)]="form.address.street" /></div>
+    <div>Tel: <input type="text" [(ngModel)]="form.tel" /></div>
+    <div>Fax: <input type="text" [(ngModel)]="form.fax" /></div>
     <div><button (click)="clearForm()">Clear Form</button></div>
-    <div><button (click)="rollback()">Rollback</button></div>
+    <div><button (click)="rollback()">UNDO (Rollback)</button></div>
+    <div><button (click)="revertRollback()">REDO (Revert Rollback)</button></div>
     <hr />
     <h3>Replay</h3>
     <div>{{_$formReplay | json}}</div>
@@ -37,7 +39,6 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef
   ) { }
   ngOnInit() {
-    // this._$form = new FormData();
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
   }
@@ -46,32 +47,16 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
-      Observable.fromEvent<KeyboardEvent>(document.getElementsByTagName('sg-page5'), 'keyup')
+      Observable.fromEvent<KeyboardEvent>(document.querySelectorAll('sg-page5 input'), 'keyup')
         .debounceTime(250)
-        .do(() => {
-          const form: FormData = {
-            firstName: this.firstName,
-            lastName: this.lastName,
-            age: this.age,
-            address: this.address,
-            tel: this.tel,
-            fax: this.fax,
-            gender: this.gender
-          }
-          this.service.setForm(form).log('Form');
-        })
-        .subscribe(() => this.cd.markForCheck()),
+        .do(() => console.log(this.form))
+        .do(() => this.service.setForm(this.form).log('Form'))
+        .subscribe(),
 
-      // StoreからフォームのStateを受け取る。
+      // StoreからフォームのStateを受け取る。nullを受け取ったときはnew FormData()する。
       this.state.form$
-        .do(form => {
-          if (form) {
-            Object.keys(form).forEach(key => this[key] = form[key])
-          } else {
-            // Object.keys(this).forEach(key => this[key] = null);
-          }
-        })
-        .subscribe(() => this.cd.markForCheck()),
+        .do(form => form ? this.form = form : this.form = new FormData())
+        .subscribe(),
 
       // 入力した履歴をリプレイ。特に意味はない。
       this.state.formReplayStream$$
@@ -87,38 +72,31 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   rollback() {
     this.service.rollback(null, { withCommit: true });
   }
+  revertRollback() {
+    this.service.revertRollback({ withCommit: true });
+  }
 
   get title() { return this.state.title; }
 
-  // private _$form: FormData = new FormData();
+  private form: FormData;
   private _$formReplay: FormData;
-  firstName: string;
-  lastName: string;
-  age: number;
-  address: string;
-  gender: string;
-  tel: string;
-  fax: string;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 // FormData Class
-// export class FormData {
-//   firstName: string = '';
-//   lastName: string = '';
-//   age: number = null;
-//   address: string = '';
-//   tel: string = '';
-//   fax: string = '';
-//   gender: string = '';
-// }
-export interface FormData {
-  firstName?: string;
-  lastName?: string;
-  age?: number;
-  address?: string;
-  tel?: string;
-  fax?: string;
-  gender?: string;
+export class FormData {
+  firstName: string;
+  lastName: string;
+  age: number;
+  address: Address;
+  tel: string;
+  fax: string;
+  gender: string;
+  constructor() { this.address = new Address(); }
+}
+
+class Address {
+  zipCode: string;
+  street: string;
 }

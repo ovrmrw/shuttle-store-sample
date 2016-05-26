@@ -25,6 +25,7 @@ export class Page5State {
 
   get title() { return this.store.getState<string>(P1S._TITLE_); }
 
+  get form() { return this.store.getState<FormData>(S._FORMDATA_); }
   get form$() { return this.store.getState$<FormData>(S._FORMDATA_); }
   get formReplayStream$$() { return this.store.getPresetReplayStream$<FormData>(S._FORMDATA_, 100, 20); }
 }

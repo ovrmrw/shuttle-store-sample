@@ -26,13 +26,13 @@ export class StoreService {
   clearStatesAndLocalStorage() {
     this.store.clearStatesAndLocalStorage();
   }
-
+  
+  
   // 引数のタイムスタンプまでStateを戻す。つまりUndo。
-  rollback(targetTimestamp: number, options?: { withCommit?: boolean }) {
+  rollback(times?: number, options?: { withCommit?: boolean }) {
     const o = options; // shorthand
     const commit = o && o.withCommit ? true : false;
-    console.log(commit);
-    this.store.rollback(targetTimestamp, commit);
+    this.store.rollback(times, commit);
   }
 
   // Rollbackを元に戻す。つまりRedo。

@@ -11,10 +11,9 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import 'rxjs/add/observable/from';
 // import 'rxjs/add/operator/do';
 import lodash from 'lodash';
-// import moment from 'moment';
 
 type Nameable = Function | Object | string;
-type StateObject = { string?: any, timestamp: number };
+type StateObject = { string?: any, osn: number, timestamp: number }; // osn:ObjectSequenceNumber
 type SubscriptionObject = { string?: Subscription };
 type RuleObject = { string?: StateRule };
 type SnapShot = StateObject[];
@@ -27,6 +26,7 @@ const IDENTIFIER_PREFIX = '#';
 @Injectable()
 export class Store {
   private states: StateObject[];
+  private osnLast: number; // ObjectSequenceNumber
   private subscriptions: SubscriptionObject[] = [];
   private rule: RuleObject = {};
   private snapShots: SnapShot[] = [];
@@ -50,6 +50,7 @@ export class Store {
       console.error(err);
     }
     this.states = objsFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
+    this.osnLast = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
@@ -77,6 +78,7 @@ export class Store {
       });
   }
 
+
   // サスペンドモードに入る
   suspend() {
     this.isSuspending = true;
@@ -97,32 +99,38 @@ export class Store {
   }
 
   takeSnapShot() {
-    if (this.suspend) {
+    if (this.isSuspending) {
       const objs = lodash.cloneDeep(this.states);
       this.snapShots.push(objs);
     }
   }
 
-  rollback(targetTimestamp: number, withCommit?: boolean) {
+  rollback(times: number = 1, withCommit?: boolean) {
     if (!this.isSuspending) {
       this.suspend();
     }
     if (this.isSuspending) {
       this.takeSnapShot();
-      this.states =  this.states.slice(0, -1);
+      const _times = times && times > 0 ? times : 1;
+      this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
+      console.log(this.snapShots);
     }
     if (withCommit) {
       this.revertSuspend();
     }
   }
 
+  // Rollbackを取り消す。
+  // snapShotsの最後の要素をthis.statesに戻してsnapShotsの最後の要素を削除する。
   revertRollback(withCommit?: boolean) {
     if (!this.isSuspending) {
       this.suspend();
     }
-    if (this.snapShots.length > 0) {
-      const objs = this.snapShots.reverse()[0];
+    if (this.isSuspending && this.snapShots.length > 0) {
+      const objs = this.snapShots[this.snapShots.length - 1]; // 配列の末尾を取得
       this.states = objs;
+      this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
+      console.log(this.snapShots);
     }
     if (withCommit) {
       this.revertSuspend();
@@ -136,6 +144,7 @@ export class Store {
     let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
     obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
+    obj.osn = this.osnLast++;
 
     if (!this.isSuspending) {
       if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
@@ -153,15 +162,17 @@ export class Store {
 
   getStates<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
     const identifier = generateIdentifier(nameablesAsIdentifier);
-    const states = this.states
+    const objs = this.states
       .filter(obj => obj && identifier in obj)
       .map(obj => pickValueFromObject(obj));
-    if (states.length > 0) {
-      const _limit = limit && limit > 0 ? limit : 1;
-      return states.reverse().slice(0, _limit) as T[];
+    let states: T[];
+    if (objs.length > 0) {
+      const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
+      states = objs.slice(0, _limit * -1); // 配列の末尾を削除 // objs.reverse().slice(0, _limit) as T[];
     } else {
-      return [] as T[];
+      states = [];
     }
+    return lodash.cloneDeep(states); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
 
   getState<T>(nameablesAsIdentifier: Nameable[]): T {
@@ -178,7 +189,8 @@ export class Store {
       .map(states => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
         return states.reverse().slice(0, _limit) as T[];
-      });
+      })
+      .map(states => lodash.cloneDeep(states)); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
 
   getState$<T>(nameablesAsIdentifier: Nameable[]): Observable<T> {
@@ -292,7 +304,7 @@ function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, ma
       objs.forEach(obj => newObjs.push(obj));
     }
   });
-  newObjs = newObjs.sort((a, b) => a.timestamp > b.timestamp ? 1 : -1); // タイムスタンプの昇順で並べ替える。
+  newObjs = newObjs.sort((a, b) => a.osn > b.osn ? 1 : -1); // ObjectSequenceNumberの昇順で並べ替える。
   console.timeEnd('gabageCollector');
   return newObjs;
 }
@@ -344,7 +356,8 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
 
     if (objs.length > _limit) {
       // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
-      const ary = objs.reverse().slice(0, _limit).reverse(); // TODO:もっとやりようがある。
+      // const ary = objs.reverse().slice(0, _limit).reverse(); // TODO:もっとやりようがある。
+      const ary = objs.slice(0, _limit * -1);
       // let l = 0;
       for (let l = 0; l < ary.length; l = (l + 1) | 0) {
         newObjs.push(ary[l]);
@@ -360,7 +373,7 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
     }
     // j = (j + 1) | 0;
   }
-  newObjs = newObjs.sort((a, b) => a.timestamp > b.timestamp ? 1 : -1); // タイムスタンプの昇順で並べ替える。
+  newObjs = newObjs.sort((a, b) => a.osn > b.osn ? 1 : -1); // ObjectSequenceNumberの昇順で並べ替える。
   console.timeEnd('gabageCollectorFastTuned');
   return newObjs;
 }
