@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
-// import lodash from 'lodash';
+import lodash from 'lodash';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page5Service, Page5State } from './page5.service';
@@ -22,9 +22,12 @@ import { Page5Service, Page5State } from './page5.service';
     <div>Street: <input type="text" [(ngModel)]="form.address.street" /></div>
     <div>Tel: <input type="text" [(ngModel)]="form.tel" /></div>
     <div>Fax: <input type="text" [(ngModel)]="form.fax" /></div>
+    <!--
     <div *ngIf="form.emails.length > 0">Email1: <input type="text" [(ngModel)]="form.emails[0]" /></div>
     <div *ngIf="form.emails.length > 1">Email2: <input type="text" [(ngModel)]="form.emails[1]" /></div>
     <div *ngIf="form.emails.length > 2">Email3: <input type="text" [(ngModel)]="form.emails[2]" /></div>
+    -->
+    <div *ngFor="let i of emailsRange">Email{{i + 1}}: <input type="text" [(ngModel)]="form.emails[i]" /></div>
     <div><button (click)="clearForm()">Clear Form</button></div>
     <div><button (click)="rollback()">UNDO (Rollback)</button></div>
     <div><button (click)="revertRollback()">REDO (Revert Rollback)</button></div>
@@ -87,6 +90,9 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   get title() { return this.state.title; }
+
+  // このrangeを用意しておかないとtemplateでうまくngForできない。本当はこんなことしたくない。
+  get emailsRange() { return lodash.range(0, this.form.emails.length); }
 
   private form: FormData;
   private _$formReplay: FormData;
