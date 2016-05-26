@@ -168,7 +168,7 @@ export class Store {
     let states: T[];
     if (objs.length > 0) {
       const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-      states = objs.slice(0, _limit * -1); // 配列の末尾を削除 // objs.reverse().slice(0, _limit) as T[];
+      states = objs.reverse().slice(0, _limit); // ここで配列を反転させている。
     } else {
       states = [];
     }
@@ -188,7 +188,7 @@ export class Store {
       .map(objs => objs.map(obj => pickValueFromObject(obj)))
       .map(states => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return states.reverse().slice(0, _limit) as T[];
+        return states.reverse().slice(0, _limit) as T[]; // ここで配列を反転させている。
       })
       .map(states => lodash.cloneDeep(states)); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
