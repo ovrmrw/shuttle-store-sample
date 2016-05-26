@@ -57,6 +57,7 @@ export class Store {
       .subscribe(newState => {
         if (newState) { // nullがthis.statesにpushされないように制御する。
           this.states.push(newState);
+          this.snapShots = []; // this.statesに新しい値がpushされたらsnapshotsは初期化する。       
         }
         // this.states = gabageCollector(this.states, this.rule);
         this.states = gabageCollectorFastTuned(this.states);
@@ -145,7 +146,7 @@ export class Store {
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
       console.log(this.snapShots);
     } else {
-      alert('No more Snapshots.\nSnapshot is taken when UNDO is executed.');
+      alert('No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n');
     }
     if (withCommit) {
       this.revertSuspend();
