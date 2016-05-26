@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { Store, StoreService, StateRule } from '../shuttle-store';
+import { Store, StoreService } from '../shuttle-store';
 import { Page1Service as P1S } from '../services.ref';
 
 ////////////////////////////////////////////////////////////////////////////

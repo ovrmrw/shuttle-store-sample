@@ -83,7 +83,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   rollback() {
-    this.service.rollback(null, { withCommit: true });
+    this.service.rollback({ withCommit: true });
   }
   revertRollback() {
     this.service.revertRollback({ withCommit: true });

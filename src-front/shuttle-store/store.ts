@@ -13,9 +13,9 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 type Nameable = Function | Object | string;
-type StateObject = { string?: any, osn: number, timestamp: number }; // osn:ObjectSequenceNumber
+type StateObject = { string?: any, osn: number, timestamp: number, rule: StateRule }; // osn:ObjectSequenceNumber
 type SubscriptionObject = { string?: Subscription };
-type RuleObject = { string?: StateRule };
+// type RuleObject = { string?: StateRule };
 type SnapShot = StateObject[];
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
@@ -28,7 +28,7 @@ export class Store {
   private states: StateObject[];
   private osnLast: number; // ObjectSequenceNumber
   private subscriptions: SubscriptionObject[] = [];
-  private rule: RuleObject = {};
+  // private rule: RuleObject = {};
   private snapShots: SnapShot[] = [];
   private _dispatcher$: Subject<any> = new Subject<any>();
   private _localStorageKeeper$: Subject<StateObject[]> = new Subject<StateObject[]>();
@@ -38,7 +38,7 @@ export class Store {
   private isSuspending: boolean = false;
   private tempStates: StateObject[] = [];
   private tempSubscriptions: SubscriptionObject[] = [];
-  private tempRule: RuleObject = {};
+  // private tempRule: RuleObject = {};
 
   constructor() {
     let objsFromLS: StateObject[];
@@ -55,9 +55,11 @@ export class Store {
 
     this._dispatcher$
       .subscribe(newState => {
-        this.states.push(newState);
+        if (newState) { // nullがthis.statesにpushされないように制御する。
+          this.states.push(newState);
+        }
         // this.states = gabageCollector(this.states, this.rule);
-        this.states = gabageCollectorFastTuned(this.states, this.rule);
+        this.states = gabageCollectorFastTuned(this.states);
         // console.log('↓ states array on Store ↓');
         // console.log(this.states);
         this._returner$.next(this.states);
@@ -87,8 +89,8 @@ export class Store {
   // サスペンドモードから戻る
   revertSuspend() {
     if (this.isSuspending) {
-      Object.keys(this.tempRule).forEach(key => this.rule[key] = this.tempRule[key]);
-      this.tempRule = {};
+      // Object.keys(this.tempRule).forEach(key => this.rule[key] = this.tempRule[key]);
+      // this.tempRule = {};
       this.tempStates.forEach(obj => this.states.push(obj));
       this.tempStates = [];
       this.tempSubscriptions.forEach(obj => this.subscriptions.push(obj));
@@ -105,14 +107,25 @@ export class Store {
     }
   }
 
-  rollback(times: number = 1, withCommit?: boolean) {
+  rollback(withCommit?: boolean) {
     if (!this.isSuspending) {
       this.suspend();
     }
     if (this.isSuspending) {
       this.takeSnapShot();
-      const _times = times && times > 0 ? times : 1;
-      this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
+
+      // 末尾から探索して最初に見つかったrollback=trueな要素を削除する。
+      for (let i = this.states.length - 1; i >= 0; i = (i - 1) | 0) {
+        const state = this.states[i];
+        const rollback = state.rule && state.rule.rollback ? true : false;
+        if (rollback) {
+          // console.log(this.states);
+          this.states.splice(i, 1); // 指定した位置の要素を削除。spliceは扱いが特殊な関数なので注意すること。
+          // console.log(this.states);
+          break;
+        }
+      }
+      // this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
       console.log(this.snapShots);
     }
     if (withCommit) {
@@ -131,6 +144,8 @@ export class Store {
       this.states = objs;
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
       console.log(this.snapShots);
+    } else {
+      alert('No more Snapshots.\nSnapshot is taken when UNDO is executed.');
     }
     if (withCommit) {
       this.revertSuspend();
@@ -139,25 +154,26 @@ export class Store {
 
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
-  setState(data: any, nameablesAsIdentifier: Nameable[], rule?: StateRule): Logger {
+  setState(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
     obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
     obj.osn = this.osnLast++;
+    obj.rule = new StateRule(ruleOptions);
 
     if (!this.isSuspending) {
-      if (rule) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
-        this.rule[identifier] = rule;
-      }
+      // if (ruleOptions) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
+      //   this.rule[identifier] = new StateRule(ruleOptions);
+      // }
       this._dispatcher$.next(obj); // dispatcherをsubscribeしている全てのSubscriberをキックする。
     } else { // サスペンドモードのとき。      
-      if (rule) {
-        this.tempRule[identifier] = rule;
-      }
+      // if (ruleOptions) {
+      //   this.tempRule[identifier] = new StateRule(ruleOptions);
+      // }
       this.tempStates.push(obj);
     }
-    return new Logger(obj, rule);
+    return new Logger(obj);
   }
 
   getStates<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
@@ -205,7 +221,8 @@ export class Store {
   // input: [e,c,a]
   // output: |--a--c--e-->
   // output: |--e--c--a--> (if descending is true)
-  getPresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], limit: number, interval: number, descending?: boolean): Observable<T> {
+  getPresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
+    const {limit, interval, descending} = options;
     const _interval = interval && interval > 0 ? interval : 1;
     return this.getStates$<T>(nameablesAsIdentifier, limit)
       .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
@@ -222,7 +239,8 @@ export class Store {
   // input: [e,c,a]
   // output: |--[a]--[a,c]--[a,c,e]-->
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
-  getPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], limit: number, interval: number, descending?: boolean): Observable<T[]> {
+  getPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
+    const {limit, interval, descending} = options;
     const _interval = interval && interval > 0 ? interval : 1;
     let ary = [];
     return this.getStates$<T>(nameablesAsIdentifier, limit)
@@ -287,7 +305,7 @@ export class Store {
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper Functions
-function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, maxElementsByKey: number = DEFAULT_LIMIT): StateObject[] {
+function gabageCollector(stateObjects: StateObject[]): StateObject[] {
   console.time('gabageCollector');
   const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
   const uniqKeys = lodash.uniq(keys);
@@ -297,9 +315,10 @@ function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, ma
   // key毎に保存最大数を超えたものをカットして新しい配列を作る。
   uniqKeys.forEach(identifier => {
     const objs = stateObjects.filter(obj => obj && identifier in obj);
-    const maxHistory = identifier in ruleObject ? (<StateRule>ruleObject[identifier]).limit : maxElementsByKey;
-    if (objs.length > maxHistory) {
-      objs.reverse().slice(0, maxHistory).reverse().forEach(obj => newObjs.push(obj));
+    const lastObj = objs[objs.length - 1]; // 配列の末尾を取得
+    const limit = lastObj.rule && lastObj.rule.limit ? lastObj.rule.limit : DEFAULT_LIMIT;
+    if (objs.length > limit) {
+      objs.reverse().slice(0, limit).reverse().forEach(obj => newObjs.push(obj));
     } else {
       objs.forEach(obj => newObjs.push(obj));
     }
@@ -311,7 +330,7 @@ function gabageCollector(stateObjects: StateObject[], ruleObject: RuleObject, ma
 
 // gabageCollectorの処理速度が高速になるようにチューニングしたもの。10倍近く速い。
 // 参考: http://qiita.com/keroxp/items/67804391a8d65eb32cb8
-function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleObject, limit: number = DEFAULT_LIMIT): StateObject[] {
+function gabageCollectorFastTuned(stateObjects: StateObject[]): StateObject[] {
   console.time('gabageCollectorFastTuned');
   // const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
   let keys: string[] = [];
@@ -352,12 +371,13 @@ function gabageCollectorFastTuned(stateObjects: StateObject[], ruleObject: RuleO
     }
 
     // StateRuleが保持されている場合、最大保存数を差し替える。
-    const _limit = identifier in ruleObject ? (<StateRule>ruleObject[identifier]).limit : limit;
+    const lastObj = objs[objs.length - 1]; // 配列の末尾を取得
+    const limit = lastObj.rule && lastObj.rule.limit ? lastObj.rule.limit : DEFAULT_LIMIT;
 
-    if (objs.length > _limit) {
+    if (objs.length > limit) {
       // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
       // const ary = objs.reverse().slice(0, _limit).reverse(); // TODO:もっとやりようがある。
-      const ary = objs.slice(0, _limit * -1);
+      const ary = objs.slice(0, limit * -1);
       // let l = 0;
       for (let l = 0; l < ary.length; l = (l + 1) | 0) {
         newObjs.push(ary[l]);
@@ -411,25 +431,29 @@ function pickValueFromObject<T>(obj: { string?: T }): T {
 // StateRule Class
 export class StateRule {
   limit: number;
+  rollback: boolean;
   constructor(options: StateRuleOptions) {
-    const opts = options; // shorthand
-    if (opts.limit && opts.limit > 0) {
-      this.limit = opts.limit;
-    } else {
-      this.limit = DEFAULT_LIMIT;
-    }
+    const {limit, rollback} = options;
+    // if (o && o.limit && o.limit > 0) {
+    //   this.limit = o.limit;
+    // } else {
+    //   this.limit = DEFAULT_LIMIT;
+    // }
+    this.limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
+    this.rollback = rollback ? true : false;
   }
 }
 
 interface StateRuleOptions {
   limit?: number;
+  rollback?: boolean;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////
 // Logger Class
 class Logger {
-  constructor(private state: StateObject, private rule: StateRule) { }
+  constructor(private state: StateObject) { }
 
   log(message?: string) {
     if (message) {
@@ -443,4 +467,13 @@ class Logger {
     }, {});
     console.log(obj);
   }
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+// Interfaces
+interface ReplayStreamOptions {
+  interval: number;
+  limit?: number;
+  descending?: boolean;
 }

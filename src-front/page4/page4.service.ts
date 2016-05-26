@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { Store, StoreService, StateRule } from '../shuttle-store';
+import { Store, StoreService } from '../shuttle-store';
 import { Page1Service as P1S } from '../services.ref';
 import { KeyInput } from '../types.ref';
 
@@ -13,7 +13,7 @@ export class Page4Service extends StoreService {
 
   constructor(store: Store) { super(store); }
 
-  setKeyInput(data: KeyInput) { return this.store.setState(data, S._KEYINPUT_, new StateRule({ limit: 100 })); }
+  setKeyInput(data: KeyInput) { return this.store.setState(data, S._KEYINPUT_, { limit: 100 }); }
   setUniqueId(data: string) { return this.store.setState(data, S._UNIQUEID_); }
 }
 

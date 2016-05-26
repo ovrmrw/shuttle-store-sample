@@ -26,20 +26,18 @@ export class StoreService {
   clearStatesAndLocalStorage() {
     this.store.clearStatesAndLocalStorage();
   }
-  
-  
+
+
   // 引数のタイムスタンプまでStateを戻す。つまりUndo。
-  rollback(times?: number, options?: { withCommit?: boolean }) {
-    const o = options; // shorthand
-    const commit = o && o.withCommit ? true : false;
-    this.store.rollback(times, commit);
+  rollback(options?: { withCommit?: boolean }) {
+    const {withCommit} = options;
+    this.store.rollback(withCommit);
   }
 
   // Rollbackを元に戻す。つまりRedo。
   revertRollback(options?: { withCommit?: boolean }) {
-    const o = options; // shorthand
-    const commit = o && o.withCommit ? true : false;
-    this.store.revertRollback(commit);
+    const {withCommit} = options;
+    this.store.revertRollback(withCommit);
   }
 
   // サスペンドモードのままになっている場合、元に戻さないとComponentにPushが来ない。

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { Store, StoreService, StateRule } from '../shuttle-store';
+import { Store, StoreService } from '../shuttle-store';
 import { Page1Service as P1S } from '../services.ref';
 import { FormData } from './page5.component';
 
@@ -12,7 +12,7 @@ export class Page5Service extends StoreService {
 
   constructor(store: Store) { super(store); }
 
-  setForm(data: FormData) { return this.store.setState(data, S._FORMDATA_); }
+  setForm(data: FormData) { return this.store.setState(data, S._FORMDATA_, { rollback: true }); }
 }
 
 const S = Page5Service; // shorthand
@@ -27,5 +27,5 @@ export class Page5State {
 
   get form() { return this.store.getState<FormData>(S._FORMDATA_); }
   get form$() { return this.store.getState$<FormData>(S._FORMDATA_); }
-  get formReplayStream$$() { return this.store.getPresetReplayStream$<FormData>(S._FORMDATA_, 100, 20); }
+  get formReplayStream$$() { return this.store.getPresetReplayStream$<FormData>(S._FORMDATA_, { interval: 20, limit: 100 }); }
 }

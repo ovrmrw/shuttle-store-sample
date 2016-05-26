@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { Store, StoreService, StateRule } from '../shuttle-store';
+import { Store, StoreService } from '../shuttle-store';
 import { Page1Service as P1S } from '../services.ref';
 
 ////////////////////////////////////////////////////////////////////////////
@@ -20,7 +20,7 @@ export class Page2State {
 
   get title() { return this.store.getState<string>(P1S._TITLE_); }
   get titles$() { return this.store.getStates$<string>(P1S._TITLE_); }
-  get titleReplayStream$$() { return this.store.getPresetReplayStream$<string>(P1S._TITLE_, null, 100); }
+  get titleReplayStream$$() { return this.store.getPresetReplayStream$<string>(P1S._TITLE_, { interval: 100 }); }
 
-  get colorsReplayStream$$() { return this.store.getPresetReplayArrayStream$<string>(P1S._COLOR_, null, 400); }
+  get colorsReplayStream$$() { return this.store.getPresetReplayArrayStream$<string>(P1S._COLOR_, { interval: 400 }); }
 }
