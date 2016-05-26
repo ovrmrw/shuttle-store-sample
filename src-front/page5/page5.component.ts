@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
-import lodash from 'lodash';
+// import lodash from 'lodash';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page5Service, Page5State } from './page5.service';
@@ -22,6 +22,9 @@ import { Page5Service, Page5State } from './page5.service';
     <div>Street: <input type="text" [(ngModel)]="form.address.street" /></div>
     <div>Tel: <input type="text" [(ngModel)]="form.tel" /></div>
     <div>Fax: <input type="text" [(ngModel)]="form.fax" /></div>
+    <div *ngIf="form.emails.length > 0">Email1: <input type="text" [(ngModel)]="form.emails[0]" /></div>
+    <div *ngIf="form.emails.length > 1">Email2: <input type="text" [(ngModel)]="form.emails[1]" /></div>
+    <div *ngIf="form.emails.length > 2">Email3: <input type="text" [(ngModel)]="form.emails[2]" /></div>
     <div><button (click)="clearForm()">Clear Form</button></div>
     <div><button (click)="rollback()">UNDO (Rollback)</button></div>
     <div><button (click)="revertRollback()">REDO (Revert Rollback)</button></div>
@@ -47,15 +50,22 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
-      Observable.fromEvent<KeyboardEvent>(document.querySelectorAll('sg-page5 input'), 'keyup')
-        .debounceTime(250)
-        .do(() => console.log(this.form))
+      Observable.fromEvent<KeyboardEvent>(document.querySelector('sg-page5'), 'keyup')
+        .debounceTime(200)
         .do(() => this.service.setForm(this.form).log('Form'))
         .subscribe(),
 
       // StoreからフォームのStateを受け取る。nullを受け取ったときはnew FormData()する。
       this.state.form$
-        .do(form => form ? this.form = form : this.form = new FormData())
+        .map(form => form ? form : new FormData())
+        .map(form => { // メールアドレス入力欄の数を動的に変更する。
+          if (form.emails.length >= form.emails.filter(email => !!email).length) {
+            form.emails = form.emails.filter(email => !!email);
+            form.emails.push('');
+          }
+          return form;
+        })
+        .do(form => this.form = form)
         .subscribe(),
 
       // 入力した履歴をリプレイ。特に意味はない。
@@ -93,6 +103,7 @@ export class FormData {
   tel: string;
   fax: string;
   gender: string;
+  emails: string[] = [''];
   constructor() { this.address = new Address(); }
 }
 

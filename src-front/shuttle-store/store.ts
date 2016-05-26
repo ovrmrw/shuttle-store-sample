@@ -100,7 +100,7 @@ export class Store {
 
   takeSnapShot() {
     if (this.isSuspending) {
-      const objs = lodash.cloneDeep(this.states);
+      const objs = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
       this.snapShots.push(objs);
     }
   }
@@ -168,7 +168,7 @@ export class Store {
     let states: T[];
     if (objs.length > 0) {
       const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-      states = objs.reverse().slice(0, _limit); // ここで配列を反転させている。
+      states = objs.reverse().slice(0, _limit); // ここでStatesを降順で並べ替えて不要な要素をカットしている。
     } else {
       states = [];
     }
@@ -188,7 +188,7 @@ export class Store {
       .map(objs => objs.map(obj => pickValueFromObject(obj)))
       .map(states => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return states.reverse().slice(0, _limit) as T[]; // ここで配列を反転させている。
+        return states.reverse().slice(0, _limit) as T[]; // ここでStatesを降順で並べ替えて不要な要素をカットしている。
       })
       .map(states => lodash.cloneDeep(states)); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
