@@ -161,7 +161,7 @@ export class Store {
     obj[identifier] = lodash.cloneDeep(data);
     obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
     obj.osn = this.osnLast++;
-    obj.rule = new StateRule(ruleOptions);
+    obj.rule = ruleOptions ? new StateRule(ruleOptions) : null;
 
     if (!this.isSuspending) {
       // if (ruleOptions) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
