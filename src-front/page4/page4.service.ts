@@ -1,16 +1,13 @@
 import { Injectable } from '@angular/core';
 
-import { Store, StoreService } from '../shuttle-store';
-import { Page1Service as P1S } from '../services.ref';
-import { KeyInput } from '../types.ref';
+import { Store } from '../shuttle-store';
+import { AppService } from '../services.ref';
+import { KeyInput } from './page4.component';
 
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
-export class Page4Service extends StoreService {
-  static _KEYINPUT_ = ['keyinput', Page4Service];
-  static _UNIQUEID_ = ['uniqueid', Page4Service];
-
+export class Page4Service extends AppService {
   constructor(store: Store) { super(store); }
 
   setKeyInput(data: KeyInput) { return this.store.setState(data, S._KEYINPUT_, { limit: 100 }); }
@@ -25,7 +22,7 @@ const S = Page4Service; // shorthand
 export class Page4State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.getState<string>(P1S._TITLE_); }
+  get title() { return this.store.getState<string>(S._TITLE_); }
 
   get keyInputs$() { return this.store.getStates$<KeyInput>(S._KEYINPUT_); }
 

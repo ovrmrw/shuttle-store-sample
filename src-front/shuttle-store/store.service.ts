@@ -5,7 +5,7 @@ import lodash from 'lodash';
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
 const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
 
-export class StoreService {
+export abstract class StoreService {
   constructor(
     protected store: Store
   ) { }

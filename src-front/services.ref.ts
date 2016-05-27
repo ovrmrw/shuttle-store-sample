@@ -1,3 +1,4 @@
+export * from './app/app.service';
 export * from './page1/page1.service';
 export * from './page2/page2.service';
 export * from './page3/page3.service';

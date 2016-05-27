@@ -6,6 +6,7 @@ import lodash from 'lodash';
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page4Service, Page4State } from './page4.service';
 import { KeyInput } from '../types.ref';
+export { KeyInput };
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component

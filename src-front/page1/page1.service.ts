@@ -1,14 +1,12 @@
 import { Injectable } from '@angular/core';
 
-import { Store, StoreService } from '../shuttle-store';
+import { Store } from '../shuttle-store';
+import { AppService } from '../services.ref';
 
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
-export class Page1Service extends StoreService {
-  static _TITLE_ = ['app-title', Page1Service];
-  static _COLOR_ = ['color', Page1Service];
-
+export class Page1Service extends AppService {
   constructor(store: Store) { super(store); }
 
   setTitle(data: string) { return this.store.setState(data, S._TITLE_, { rollback: true }); }
