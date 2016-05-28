@@ -188,11 +188,11 @@ export class Store {
     let states: T[];
     if (objs.length > 0) {
       const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-      states = objs.slice(objs.length - _limit); // objs.reverse().slice(0, _limit); // ここでStatesを降順で並べ替えて不要な要素をカットしている。
+      states = objs.slice(objs.length - _limit); // 配列の先頭側から要素を削除する。
     } else {
       states = [];
     }
-    return lodash.cloneDeep(states).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
+    return lodash.cloneDeep(states).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
   getStates = this.takeMany;
 
@@ -210,9 +210,9 @@ export class Store {
       .map(objs => objs.filter(obj => obj && identifier in obj))
       .map(objs => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return objs.slice(objs.length - _limit); // objs.reverse().slice(0, _limit); // ここでStatesを降順で並べ替えて不要な要素をカットしている。
+        return objs.slice(objs.length - _limit); // 配列の先頭側から要素を削除する。
       })
-      .map(objs => lodash.cloneDeep(objs).reverse());
+      .map(objs => lodash.cloneDeep(objs).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
 
   takeMany$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
@@ -222,9 +222,9 @@ export class Store {
       .map(objs => objs.map(obj => pickValueFromObject(obj)))
       .map(states => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return states.slice(states.length - _limit);  // states.reverse().slice(0, _limit) as T[]; // ここでStatesを降順で並べ替えて不要な要素をカットしている。
+        return states.slice(states.length - _limit); // 配列の先頭側から要素を削除する。
       })
-      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
+      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
   getStates$ = this.takeMany$;
 
