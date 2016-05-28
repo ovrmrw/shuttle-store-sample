@@ -30,15 +30,10 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
   ngOnInit() {
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
+    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 
-  registerSubscriptionsEveryEntrance() {
-    // 次回ページ遷移入時にunsubscribeするsubscription群。
-    this.service.disposableSubscriptions = [
-
-    ];
-  }
+  registerSubscriptionsEveryActivate() { }
 
   // Falcorのように一度取得したデータはキャッシュされ、次回はキャッシュから取得する。
   requestWiki() {
@@ -52,5 +47,5 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   get title() { return this.state.title; }
 
   private keyword: string;
-  private _$result: any | string;
+  private _$result: any;
 }

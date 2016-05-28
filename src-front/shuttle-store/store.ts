@@ -26,7 +26,7 @@ const IDENTIFIER_PREFIX = '#';
 @Injectable()
 export class Store {
   private states: StateObject[];
-  private osnLast: number; // ObjectSequenceNumber
+  private osnLatest: number; // ObjectSequenceNumber
   private subscriptions: SubscriptionObject[] = [];
   // private rule: RuleObject = {};
   private snapShots: SnapShot[] = [];
@@ -50,7 +50,7 @@ export class Store {
       console.error(err);
     }
     this.states = objsFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
-    this.osnLast = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+    this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
@@ -101,7 +101,7 @@ export class Store {
     }
   }
 
-  private takeSnapShot() {
+  private createSnapShot() {
     if (this.isSuspending) {
       const objs = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
       this.snapShots.push(objs);
@@ -113,7 +113,7 @@ export class Store {
       this.suspend();
     }
     if (this.isSuspending) {
-      this.takeSnapShot();
+      this.createSnapShot();
 
       // 末尾から探索して最初に見つかったrollback=trueな要素を削除する。
       for (let i = this.states.length - 1; i >= 0; i = (i - 1) | 0) {
@@ -161,7 +161,7 @@ export class Store {
     let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
     obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
-    obj.osn = this.osnLast++;
+    obj.osn = this.osnLatest + 1;
     obj.rule = ruleOptions ? new StateRule(ruleOptions) : null;
 
     if (!this.isSuspending) {

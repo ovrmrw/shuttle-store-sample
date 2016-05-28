@@ -49,13 +49,13 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     });
     // -----
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
+    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
   ngAfterViewInit() {
     document.getElementById('keyinput').focus();
   }
 
-  registerSubscriptionsEveryEntrance() {
+  registerSubscriptionsEveryActivate() {
     let previousTime: number;
     let previousKeyCode: number;
 

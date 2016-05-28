@@ -47,10 +47,10 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
   ngOnInit() {
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryEntrance(); // ページ遷移入の度にsubscriptionを作成する。
+    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 
-  registerSubscriptionsEveryEntrance() {
+  registerSubscriptionsEveryActivate() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
