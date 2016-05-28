@@ -155,7 +155,7 @@ export class Store {
 
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
-  setState(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
+  put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
@@ -176,8 +176,9 @@ export class Store {
     }
     return new Logger(obj);
   }
+  setState = this.put;
 
-  getStates<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
+  selectPlural<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     const objs = this.states
       .filter(obj => obj && identifier in obj)
@@ -191,14 +192,16 @@ export class Store {
     }
     return lodash.cloneDeep(states); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
+  getStates = this.selectPlural;
 
-  getState<T>(nameablesAsIdentifier: Nameable[]): T {
+  select<T>(nameablesAsIdentifier: Nameable[]): T {
     const ary = this.getStates<T>(nameablesAsIdentifier, 1);
     const state = ary && ary.length > 0 ? ary[0] : null;
     return state;
   }
+  getState = this.select;
 
-  getStates$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
+  selectPlural$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     return this._returner$
       .map(objs => objs.filter(obj => obj && identifier in obj))
@@ -209,20 +212,22 @@ export class Store {
       })
       .map(states => lodash.cloneDeep(states)); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
+  getStates$ = this.selectPlural$;
 
-  getState$<T>(nameablesAsIdentifier: Nameable[]): Observable<T> {
+  select$<T>(nameablesAsIdentifier: Nameable[]): Observable<T> {
     return this.getStates$<T>(nameablesAsIdentifier, 1)
       .map(states => {
         return (states.length > 0 ? states[0] : null);
       });
   }
+  getState$ = this.select$;
 
   // ただの配列を時間軸のある値のストリームに変換して流す。後続はinterval毎に配列の値を順々に受け取る。
   // states: [a,b,c,d,e] (this.states)
   // input: [e,c,a]
   // output: |--a--c--e-->
   // output: |--e--c--a--> (if descending is true)
-  getPresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
+  selectPresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
     const {limit, interval, descending} = options;
     const _interval = interval && interval > 0 ? interval : 1;
     return this.getStates$<T>(nameablesAsIdentifier, limit)
@@ -234,13 +239,14 @@ export class Store {
           .take(states.length);
       });
   }
+  getPresetReplayStream$ = this.selectPresetReplayStream$;
 
   // ただの配列を時間軸のある配列のストリームに変換して流す。後続はinterval毎に要素が順々に増えていく配列を受け取る。
   // states: [a,b,c,d,e] (this.states)
   // input: [e,c,a]
   // output: |--[a]--[a,c]--[a,c,e]-->
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
-  getPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
+  selectPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
     const {limit, interval, descending} = options;
     const _interval = interval && interval > 0 ? interval : 1;
     let ary = [];
@@ -257,8 +263,9 @@ export class Store {
           .take(states.length);
       });
   }
+  getPresetReplayArrayStream$ = this.selectPresetReplayArrayStream$;
 
-  setDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
+  putDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
     obj[identifier] = subscription;
@@ -269,6 +276,7 @@ export class Store {
       this.tempSubscriptions.push(obj);
     }
   }
+  setDisposableSubscription = this.putDisposableSubscription;
 
   disposeSubscriptions(nameablesAsIdentifier: Nameable[] = [this]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
@@ -458,9 +466,9 @@ class Logger {
 
   log(message?: string) {
     if (message) {
-      console.log('===== State: ' + message + ' =====');
+      console.log('===== Added State: ' + message + ' =====');
     } else {
-      console.log('===== State =====');
+      console.log('===== Added State =====');
     }
     const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
       p[key] = this[key];

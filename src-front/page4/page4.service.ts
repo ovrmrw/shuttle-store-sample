@@ -10,8 +10,8 @@ import { KeyInput } from './page4.component';
 export class Page4Service extends AppService {
   constructor(store: Store) { super(store); }
 
-  setKeyInput(data: KeyInput) { return this.store.setState(data, S._KEYINPUT_, { limit: 100 }); }
-  setUniqueId(data: string) { return this.store.setState(data, S._UNIQUEID_); }
+  putKeyInput(data: KeyInput) { return this.store.put(data, S._KEYINPUT_, { limit: 100 }); }
+  putUniqueId(data: string) { return this.store.put(data, S._UNIQUEID_); }
 }
 
 const S = Page4Service; // shorthand
@@ -22,9 +22,9 @@ const S = Page4Service; // shorthand
 export class Page4State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.getState<string>(S._TITLE_); }
+  get title() { return this.store.select<string>(S._TITLE_); }
 
-  get keyInputs$() { return this.store.getStates$<KeyInput>(S._KEYINPUT_); }
+  get keyInputs$() { return this.store.selectPlural$<KeyInput>(S._KEYINPUT_); }
 
-  get uniqueId() { return this.store.getState<string>(S._UNIQUEID_); }
+  get uniqueId() { return this.store.select<string>(S._UNIQUEID_); }
 }

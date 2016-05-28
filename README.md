@@ -19,6 +19,9 @@ Page4 is a sample of Angular2 + C3. Your inputs cause the time graph change in r
 
 Page5 is a sample of a bit of complex form. The Component source-code is very simple (in my opinion).
 
+Page6 is a sample for HTTP requests. A data you've got once will be cached on Store, so if you request the same data next time,
+Store will return the cached data for avoiding unnecessary HTTP requests.
+
 ---
 
 ### Setup

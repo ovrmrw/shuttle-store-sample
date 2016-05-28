@@ -84,7 +84,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
                 uniqueId: this.uniqueId,
                 diff: keyCode === 65 /* keyA */ ? 0 : now - previousTime
               };
-              this.service.setKeyInput(keyInput).log('KeyInput'); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
+              this.service.putKeyInput(keyInput).log('KeyInput'); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
               previousTime = now;
               previousKeyCode = keyCode;
             }
@@ -149,7 +149,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
 
   get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
 
-  set uniqueId(data: string) { this.service.setUniqueId(data).log('UniqueId'); }
+  set uniqueId(data: string) { this.service.putUniqueId(data).log('UniqueId'); }
   get uniqueId() { return this.state.uniqueId; }
 
   text: string;

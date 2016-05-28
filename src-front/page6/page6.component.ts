@@ -52,5 +52,5 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   get title() { return this.state.title; }
 
   private keyword: string;
-  private _$result: {} | string;
+  private _$result: any | string;
 }

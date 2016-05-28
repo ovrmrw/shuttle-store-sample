@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, ElementRef } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 import lodash from 'lodash';
 
@@ -42,7 +42,8 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   constructor(
     private service: Page5Service,
     private state: Page5State,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private el: ElementRef
   ) { }
   ngOnInit() {
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
@@ -53,9 +54,9 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
-      Observable.fromEvent<KeyboardEvent>(document.querySelector('sg-page5'), 'keyup')
+      Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)
-        .do(() => this.service.setForm(this.form).log('Form'))
+        .do(() => this.service.putForm(this.form).log('Form'))
         .subscribe(),
 
       // StoreからフォームのStateを受け取る。nullを受け取ったときはnew FormData()する。
@@ -69,7 +70,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
           return form;
         })
         .do(form => this.form = form)
-        .subscribe(),
+        .subscribe(() => this.cd.markForCheck()), // 要らなそうで要る。
 
       // 入力した履歴をリプレイ。特に意味はない。
       this.state.formReplayStream$$
@@ -79,7 +80,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   clearForm() {
-    this.service.setForm(new FormData()).log('Initialize Form')
+    this.service.putForm(new FormData()).log('Initialize Form')
   }
 
   rollback() {
