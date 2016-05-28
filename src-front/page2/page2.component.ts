@@ -10,7 +10,9 @@ import { Page2Service, Page2State } from './page2.service';
   template: `
     <h2>{{title}} - PAGE2</h2>
     <hr />
-    <h3>Replay</h3>
+    <div>Page1で入力した値をリプレイします。これはTrue-time ReplayなのでPage1とは違い"実時間を再現した"リプレイとなります。</div>
+    <hr />
+    <h3>True-time Replay</h3>
     <div>{{_$title}}</div>
     <div><ul><li *ngFor="let color of _$colors"><span [style.background-color]="color">{{color}}</span></li></ul></div>
   `,

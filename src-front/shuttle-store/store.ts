@@ -243,16 +243,27 @@ export class Store {
   // output: |--a--c--e-->
   // output: |--e--c--a--> (if descending is true)
   takePresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
-    const {limit, interval, descending} = options;
+    const {limit, interval, descending, truetime} = options;
     const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
-    return this.takeMany$<T>(nameablesAsIdentifier, limit)
-      .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
-      .map(states => descending ? states : states.reverse())
+    let previousTime: number;
+    return this.takeManyAsStateObject$(nameablesAsIdentifier, limit)
+      .map(objs => objs.length > 0 ? objs : [null]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
+      .map(objs => descending ? objs : objs.reverse())
+      .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0) // previousTimeをセットする。
       .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
-        return Observable.timer(1, _interval)
-          .takeWhile(x => x < states.length)
-          .map(x => states[x]);
-      });
+        if (truetime && states.length > 0) { // truetimeがtrueなら実時間を再現したリプレイストリームを作る。
+          return Observable.timer(1, 1)
+            .takeWhile(x => x < states.length)
+            .delayWhen(x => Observable.interval(states[x] && states[x].timestamp ? states[x].timestamp - previousTime : _interval))
+            .do(x => previousTime = states[x].timestamp) // previousTimeを更新する。
+            .map(x => states[x]);
+        } else {
+          return Observable.timer(1, _interval)
+            .takeWhile(x => x < states.length)
+            .map(x => states[x]);
+        }
+      })
+      .map(obj => pickValueFromObject<T>(obj));
   }
   getPresetReplayStream$ = this.takePresetReplayStream$;
 
@@ -267,16 +278,16 @@ export class Store {
     let ary: StateObject[] = [];
     let previousTime: number;
     return this.takeManyAsStateObject$(nameablesAsIdentifier, limit)
-      .map(objs => objs.length > 0 ? objs : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
+      .map(objs => objs.length > 0 ? objs : [null]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(objs => descending ? objs : objs.reverse())
-      .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0)
+      .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0) // previousTimeをセットする。
       .do(() => ary = [])
       .switchMap(objs => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。        
-        if (truetime && objs.length > 0) {
+        if (truetime && objs.length > 0) { // truetimeがtrueなら実時間を再現したリプレイストリームを作る。
           return Observable.timer(1, 1)
             .takeWhile(x => x < objs.length)
             .delayWhen(x => Observable.interval(objs[x] && objs[x].timestamp ? objs[x].timestamp - previousTime : _interval))
-            .do(x => previousTime = objs[x].timestamp)
+            .do(x => previousTime = objs[x].timestamp) // previousTimeを更新する。
             .map(x => {
               ary.push(objs[x]);
               return ary;
@@ -288,7 +299,6 @@ export class Store {
               ary.push(objs[x]);
               return ary;
             });
-          // .take(objs.length);
         }
       })
       .map(objs => objs.map(obj => pickValueFromObject<T>(obj)));

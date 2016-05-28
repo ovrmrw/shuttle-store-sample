@@ -10,6 +10,8 @@ import { Page1Service, Page1State } from './page1.service';
   template: `
     <h2>{{title}} - PAGE1</h2>
     <hr />
+    <div>ここで入力したタイトルは全てのページで使われます。</div>
+    <hr />
     <h3>Settings</h3>
     <div>Title: <input type="text" [(ngModel)]="title" /></div>
     <div>Color: <input type="text" [(ngModel)]="color" /><button (click)="setColor()">Push</button></div>

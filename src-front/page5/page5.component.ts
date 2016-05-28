@@ -12,7 +12,8 @@ import { Page5Service, Page5State } from './page5.service';
   template: `
     <h2>{{title}} - PAGE5</h2>
     <hr />
-    <div>ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。</div>
+    <div>ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。Email入力欄は数が動的に変化します。</div>
+    <div>Undo/Redoができます。このページだけでなくPage1のタイトル等までUndo/Redoは波及します。</div>
     <hr />
     <div>FirstName: <input type="text" [(ngModel)]="form.firstName" /></div>
     <div>LastName: <input type="text" [(ngModel)]="form.lastName" /></div>

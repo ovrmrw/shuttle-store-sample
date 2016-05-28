@@ -16,7 +16,7 @@ export { KeyInput };
     <h2>{{title}} - PAGE4</h2>
     <hr />
     <div>Aを押すとグラフ描画が始まり、Zを押すと終わる。AからZまでの入力速度を計るようにしたい。グラフY軸の単位は秒。実装中。</div>
-    <div>「Start True-time Replay」をクリックして始まるリプレイは"実際に要した時間"を再現したリプレイ。</div>
+    <div>「Start True-time Replay」をクリックして始まるリプレイは"実時間を再現した"リプレイです。</div>
     <hr />
     <div>Input A～Z: <input type="text" [(ngModel)]="text" id="keyinput" /></div>
     <div *ngIf="textFinished">Finished: {{textFinished}}</div>

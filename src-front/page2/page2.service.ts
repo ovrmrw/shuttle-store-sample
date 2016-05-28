@@ -20,7 +20,7 @@ export class Page2State {
 
   get title() { return this.store.takeLatest<string>(S._TITLE_); }
   get titles$() { return this.store.takeMany$<string>(S._TITLE_); }
-  get titleReplayStream$$() { return this.store.takePresetReplayStream$<string>(S._TITLE_, { interval: 100 }); }
+  get titleReplayStream$$() { return this.store.takePresetReplayStream$<string>(S._TITLE_, { truetime: true }); }
 
-  get colorsReplayStream$$() { return this.store.takePresetReplayArrayStream$<string>(S._COLOR_, { interval: 400 }); }
+  get colorsReplayStream$$() { return this.store.takePresetReplayArrayStream$<string>(S._COLOR_, { truetime: true }); }
 }
