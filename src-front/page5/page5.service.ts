@@ -21,9 +21,9 @@ const S = Page5Service; // shorthand
 export class Page5State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.select<string>(S._TITLE_); }
+  get title() { return this.store.takeLatest<string>(S._TITLE_); }
 
-  get form() { return this.store.select<FormData>(S._FORMDATA_); }
-  get form$() { return this.store.select$<FormData>(S._FORMDATA_); }
-  get formReplayStream$$() { return this.store.selectPresetReplayStream$<FormData>(S._FORMDATA_, { interval: 20, limit: 100 }); }
+  get form() { return this.store.takeLatest<FormData>(S._FORMDATA_); }
+  get form$() { return this.store.takeLatest$<FormData>(S._FORMDATA_); }
+  get formReplayStream$$() { return this.store.takePresetReplayStream$<FormData>(S._FORMDATA_, { interval: 20, limit: 100 }); }
 }

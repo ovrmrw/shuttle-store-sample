@@ -21,9 +21,9 @@ const S = Page1Service; // shorthand
 export class Page1State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.select<string>(S._TITLE_); }
-  get titles$() { return this.store.selectPlural$<string>(S._TITLE_); }
-  get titleReplayStream$$() { return this.store.selectPresetReplayStream$<string>(S._TITLE_, { interval: 25 }); }
+  get title() { return this.store.takeLatest<string>(S._TITLE_); }
+  get titles$() { return this.store.takeMany$<string>(S._TITLE_); }
+  get titleReplayStream$$() { return this.store.takePresetReplayStream$<string>(S._TITLE_, { interval: 25 }); }
 
-  get colorsReplayStream$$() { return this.store.selectPresetReplayArrayStream$<string>(S._COLOR_, { interval: 100, descending: true }); }
+  get colorsReplayStream$$() { return this.store.takePresetReplayArrayStream$<string>(S._COLOR_, { interval: 100, descending: true }); }
 }

@@ -18,5 +18,5 @@ const S = Page3Service; // shorthand
 export class Page3State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.select<string>(S._TITLE_); }
+  get title() { return this.store.takeLatest<string>(S._TITLE_); }
 }

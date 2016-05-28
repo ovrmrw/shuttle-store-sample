@@ -101,7 +101,7 @@ export class Store {
     }
   }
 
-  takeSnapShot() {
+  private takeSnapShot() {
     if (this.isSuspending) {
       const objs = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
       this.snapShots.push(objs);
@@ -153,6 +153,7 @@ export class Store {
     }
   }
 
+
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
@@ -178,7 +179,7 @@ export class Store {
   }
   setState = this.put;
 
-  selectPlural<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
+  takeMany<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     const objs = this.states
       .filter(obj => obj && identifier in obj)
@@ -192,16 +193,16 @@ export class Store {
     }
     return lodash.cloneDeep(states); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
-  getStates = this.selectPlural;
+  getStates = this.takeMany;
 
-  select<T>(nameablesAsIdentifier: Nameable[]): T {
-    const ary = this.getStates<T>(nameablesAsIdentifier, 1);
+  takeLatest<T>(nameablesAsIdentifier: Nameable[]): T {
+    const ary = this.takeMany<T>(nameablesAsIdentifier, 1);
     const state = ary && ary.length > 0 ? ary[0] : null;
     return state;
   }
-  getState = this.select;
+  getState = this.takeLatest;
 
-  selectPlural$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
+  takeMany$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     return this._returner$
       .map(objs => objs.filter(obj => obj && identifier in obj))
@@ -212,25 +213,25 @@ export class Store {
       })
       .map(states => lodash.cloneDeep(states)); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
-  getStates$ = this.selectPlural$;
+  getStates$ = this.takeMany$;
 
-  select$<T>(nameablesAsIdentifier: Nameable[]): Observable<T> {
-    return this.getStates$<T>(nameablesAsIdentifier, 1)
+  takeLatest$<T>(nameablesAsIdentifier: Nameable[]): Observable<T> {
+    return this.takeMany$<T>(nameablesAsIdentifier, 1)
       .map(states => {
         return (states.length > 0 ? states[0] : null);
       });
   }
-  getState$ = this.select$;
+  getState$ = this.takeLatest$;
 
   // ただの配列を時間軸のある値のストリームに変換して流す。後続はinterval毎に配列の値を順々に受け取る。
   // states: [a,b,c,d,e] (this.states)
   // input: [e,c,a]
   // output: |--a--c--e-->
   // output: |--e--c--a--> (if descending is true)
-  selectPresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
+  takePresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
     const {limit, interval, descending} = options;
     const _interval = interval && interval > 0 ? interval : 1;
-    return this.getStates$<T>(nameablesAsIdentifier, limit)
+    return this.takeMany$<T>(nameablesAsIdentifier, limit)
       .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
       .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
@@ -239,18 +240,18 @@ export class Store {
           .take(states.length);
       });
   }
-  getPresetReplayStream$ = this.selectPresetReplayStream$;
+  getPresetReplayStream$ = this.takePresetReplayStream$;
 
   // ただの配列を時間軸のある配列のストリームに変換して流す。後続はinterval毎に要素が順々に増えていく配列を受け取る。
   // states: [a,b,c,d,e] (this.states)
   // input: [e,c,a]
   // output: |--[a]--[a,c]--[a,c,e]-->
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
-  selectPresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
+  takePresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
     const {limit, interval, descending} = options;
     const _interval = interval && interval > 0 ? interval : 1;
     let ary = [];
-    return this.getStates$<T>(nameablesAsIdentifier, limit)
+    return this.takeMany$<T>(nameablesAsIdentifier, limit)
       .do(() => ary = [])
       .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
@@ -263,7 +264,7 @@ export class Store {
           .take(states.length);
       });
   }
-  getPresetReplayArrayStream$ = this.selectPresetReplayArrayStream$;
+  getPresetReplayArrayStream$ = this.takePresetReplayArrayStream$;
 
   putDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);

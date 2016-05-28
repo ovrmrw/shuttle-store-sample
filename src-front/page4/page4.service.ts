@@ -22,9 +22,9 @@ const S = Page4Service; // shorthand
 export class Page4State {
   constructor(private store: Store) { }
 
-  get title() { return this.store.select<string>(S._TITLE_); }
+  get title() { return this.store.takeLatest<string>(S._TITLE_); }
 
-  get keyInputs$() { return this.store.selectPlural$<KeyInput>(S._KEYINPUT_); }
+  get keyInputs$() { return this.store.takeMany$<KeyInput>(S._KEYINPUT_); }
 
-  get uniqueId() { return this.store.select<string>(S._UNIQUEID_); }
+  get uniqueId() { return this.store.takeLatest<string>(S._UNIQUEID_); }
 }
