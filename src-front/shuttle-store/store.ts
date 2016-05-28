@@ -161,7 +161,7 @@ export class Store {
     let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
     obj[identifier] = lodash.cloneDeep(data);
     obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
-    obj.osn = this.osnLatest + 1;
+    obj.osn = this.osnLatest++;
     obj.rule = ruleOptions ? new StateRule(ruleOptions) : null;
 
     if (!this.isSuspending) {
@@ -187,11 +187,11 @@ export class Store {
     let states: T[];
     if (objs.length > 0) {
       const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-      states = objs.reverse().slice(0, _limit); // ここでStatesを降順で並べ替えて不要な要素をカットしている。
+      states = objs.slice(objs.length - _limit); // objs.reverse().slice(0, _limit); // ここでStatesを降順で並べ替えて不要な要素をカットしている。
     } else {
       states = [];
     }
-    return lodash.cloneDeep(states); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
+    return lodash.cloneDeep(states).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
   getStates = this.takeMany;
 
@@ -203,6 +203,17 @@ export class Store {
   }
   getState = this.takeLatest;
 
+  private takeManyAsStateObject$(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<StateObject[]> {
+    const identifier = generateIdentifier(nameablesAsIdentifier);
+    return this._returner$
+      .map(objs => objs.filter(obj => obj && identifier in obj))
+      .map(objs => {
+        const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
+        return objs.slice(objs.length - _limit); // objs.reverse().slice(0, _limit); // ここでStatesを降順で並べ替えて不要な要素をカットしている。
+      })
+      .map(objs => lodash.cloneDeep(objs).reverse());
+  }
+
   takeMany$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     return this._returner$
@@ -210,9 +221,9 @@ export class Store {
       .map(objs => objs.map(obj => pickValueFromObject(obj)))
       .map(states => {
         const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return states.reverse().slice(0, _limit) as T[]; // ここでStatesを降順で並べ替えて不要な要素をカットしている。
+        return states.slice(states.length - _limit);  // states.reverse().slice(0, _limit) as T[]; // ここでStatesを降順で並べ替えて不要な要素をカットしている。
       })
-      .map(states => lodash.cloneDeep(states)); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
+      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。
   }
   getStates$ = this.takeMany$;
 
@@ -238,8 +249,8 @@ export class Store {
       .map(states => descending ? states : states.reverse())
       .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
         return Observable.timer(1, _interval)
-          .map(x => states[x])
-          .take(states.length);
+          .takeWhile(x => x < states.length)
+          .map(x => states[x]);
       });
   }
   getPresetReplayStream$ = this.takePresetReplayStream$;
@@ -250,21 +261,35 @@ export class Store {
   // output: |--[a]--[a,c]--[a,c,e]-->
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
   takePresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
-    const {limit, interval, descending} = options;
+    const {limit, interval, descending, truetime} = options;
     const _interval = interval && interval > 0 ? interval : 1;
-    let ary = [];
-    return this.takeMany$<T>(nameablesAsIdentifier, limit)
+    let ary: StateObject[] = [];
+    let previousTime: number;
+    return this.takeManyAsStateObject$(nameablesAsIdentifier, limit)
+      .map(objs => objs.length > 0 ? objs : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
+      .map(objs => descending ? objs : objs.reverse())
+      .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0)
       .do(() => ary = [])
-      .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
-      .map(states => descending ? states : states.reverse())
-      .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
-        return Observable.timer(1, _interval)
-          .map(x => {
-            ary.push(states[x]);
-            return ary;
-          })
-          .take(states.length);
-      });
+      .switchMap(objs => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
+        if (truetime && objs.length > 0) {
+          return Observable.timer(1, 1)
+            .takeWhile(x => x < objs.length)
+            .delayWhen(x => Observable.interval(objs[x] && objs[x].timestamp ? objs[x].timestamp - previousTime : _interval))
+            .do(x => previousTime = objs[x].timestamp)
+            .map(x => {
+              ary.push(objs[x]);
+              return ary;
+            });
+        } else {
+          return Observable.timer(1, _interval)
+            .map(x => {
+              ary.push(objs[x]);
+              return ary;
+            })
+            .take(objs.length);
+        }
+      })
+      .map(objs => objs.map(obj => pickValueFromObject<T>(obj)));
   }
   getPresetReplayArrayStream$ = this.takePresetReplayArrayStream$;
 
@@ -383,8 +408,14 @@ function gabageCollectorFastTuned(stateObjects: StateObject[]): StateObject[] {
     }
 
     // StateRuleが保持されている場合、最大保存数を差し替える。
-    const lastObj = objs[objs.length - 1]; // 配列の末尾を取得
-    const limit = lastObj.rule && lastObj.rule.limit ? lastObj.rule.limit : DEFAULT_LIMIT;
+    const objLast = objs[objs.length - 1]; // 配列の末尾を取得
+    const limit = objLast.rule && objLast.rule.limit ? objLast.rule.limit : DEFAULT_LIMIT;
+    const filterId = objLast.rule && objLast.rule.filterId ? objLast.rule.filterId : null;
+
+    // uniqueIdが指定されている場合、同じuniqueIdのものだけフィルタリングする。
+    if (filterId) {
+      objs = objs.filter(obj => obj.rule && obj.rule.filterId ? obj.rule.filterId === filterId : true);
+    }
 
     if (objs.length > limit) {
       // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
@@ -444,8 +475,9 @@ function pickValueFromObject<T>(obj: { string?: T }): T {
 export class StateRule {
   limit: number;
   rollback: boolean;
+  filterId: string | number;
   constructor(options: StateRuleOptions) {
-    const {limit, rollback} = options;
+    const {limit, rollback, filterId} = options;
     // if (o && o.limit && o.limit > 0) {
     //   this.limit = o.limit;
     // } else {
@@ -453,12 +485,14 @@ export class StateRule {
     // }
     this.limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
     this.rollback = rollback ? true : false;
+    this.filterId = filterId ? filterId : null;
   }
 }
 
 interface StateRuleOptions {
   limit?: number;
   rollback?: boolean;
+  filterId?: string | number;
 }
 
 
@@ -488,4 +522,5 @@ interface ReplayStreamOptions {
   interval: number;
   limit?: number;
   descending?: boolean;
+  truetime?: boolean;
 }

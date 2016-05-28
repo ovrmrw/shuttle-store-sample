@@ -16,6 +16,7 @@ export { KeyInput };
     <h2>{{title}} - PAGE4</h2>
     <hr />
     <div>Aを押すとグラフ描画が始まり、Zを押すと終わる。AからZまでの入力速度を計るようにしたい。グラフY軸の単位は秒。実装中。</div>
+    <div>「Start Truetime Replay」をクリックして始まるリプレイは"実際に要した時間"を再現したリプレイ。</div>
     <hr />
     <div>Input A～Z: <input type="text" [(ngModel)]="text" id="keyinput" /></div>
     <div *ngIf="textFinished">Finished: {{textFinished}}</div>
@@ -25,6 +26,9 @@ export { KeyInput };
     <div>End: {{endTime}}</div>
     <div>Result: {{result}}</div>
     <div id="chart"></div>
+    <hr />
+    <div><button (click)="startTruetimeReplay()">Start Truetime Replay</button></div>
+    <div id="chartreplay"></div>    
   `,
   providers: [Page4Service, Page4State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -46,6 +50,11 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       },
       axis: { x: { type: 'category' } }
       // transition: { duration: 100 }
+    });
+    this.chartReplay = c3.generate({
+      bindto: '#chartreplay',
+      data: { columns: [['diff_time']] },
+      axis: { x: { type: 'category' } }
     });
     // -----
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
@@ -81,7 +90,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
               const keyInput: KeyInput = {
                 code: event['code'],
                 keyCode: keyCode,
-                uniqueId: this.uniqueId,
+                filterId: this.filterId,
                 diff: keyCode === 65 /* keyA */ ? 0 : now - previousTime
               };
               this.service.putKeyInput(keyInput).log('KeyInput'); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
@@ -99,7 +108,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
 
       // Storeからデータを受け取ってグラフを更新する。キーボード入力がトリガーとなりリアルタイムに更新される。
       this.state.keyInputs$
-        .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId)) // 絞り込み
+        // .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId)) // 絞り込み
         .map(objs => objs.reverse()) // 降順を昇順に反転
         .do(objs => {
           if (objs.length > 0) {
@@ -124,7 +133,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       console.log('Start Timer');
       this.proccessing = true;
       this.startTime = lodash.now();
-      this.uniqueId = '' + this.startTime + lodash.uniqueId();
+      this.filterId = '' + this.startTime + lodash.uniqueId();
       this.endTime = null;
       this.textFinished = null;
     }
@@ -147,16 +156,35 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     }
   }
 
+  startTruetimeReplay() {
+    this.service.disposableSubscription = this.state.keyInputsReplayStream$$
+      .do(objs => {
+        if (objs.length > 0) {
+          const diffs = objs.map(obj => obj.diff / 1000); // diffの単位をミリ秒から秒に変換。
+          const letters = objs.map(obj => obj.code.charAt(3)); // ex)'KeyA'から'A'を取り出す。
+          this.chartReplay.load({ // c3のグラフを更新する。
+            columns: [
+              ['diff_time', ...diffs]
+            ],
+            categories: letters,
+          });
+        }
+      })
+      .subscribe(() => this.cd.markForCheck());
+  }
+
   get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
 
-  set uniqueId(data: string) { this.service.putUniqueId(data).log('UniqueId'); }
-  get uniqueId() { return this.state.uniqueId; }
+  // set uniqueId(data: string) { this.service.putUniqueId(data).log('UniqueId'); }
+  // get uniqueId() { return this.state.uniqueId; }
 
   text: string;
   textFinished: string;
   textMissed: string;
   startTime: number;
   endTime: number;
+  filterId: string;
   proccessing: boolean;
   chart: c3.ChartAPI;
+  chartReplay: c3.ChartAPI;
 }
