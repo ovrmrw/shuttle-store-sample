@@ -18,7 +18,7 @@ export class Page6Service extends AppService {
   }
 
   requestWikiLikeFalcor(keyword: string): Observable<{}> {
-    const identifier = [...S._WIKIPEDIA_, keyword];
+    const identifier = [...S._WIKIPEDIA_, JSON.stringify({ keyword })];
     const cache = this.store.select<any>(identifier); // キャッシュがあるか探す。
     if (cache) { // キャッシュがあればそれを返す。なければHTTPリクエストする。
       console.log('Wiki data from cache, not from HTTP request.');
