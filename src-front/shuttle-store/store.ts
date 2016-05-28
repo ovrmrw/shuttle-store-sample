@@ -195,9 +195,10 @@ export class Store {
   }
   getStates = this.takeMany;
 
-  takeLatest<T>(nameablesAsIdentifier: Nameable[]): T {
+  takeLatest<T>(nameablesAsIdentifier: Nameable[], alternative?: any): T {
     const ary = this.takeMany<T>(nameablesAsIdentifier, 1);
-    const state = ary && ary.length > 0 ? ary[0] : null;
+    const _alt = lodash.isUndefined(alternative) ? null : alternative;
+    const state = ary && ary.length > 0 ? ary[0] : _alt;
     return state;
   }
   getState = this.takeLatest;
@@ -215,10 +216,11 @@ export class Store {
   }
   getStates$ = this.takeMany$;
 
-  takeLatest$<T>(nameablesAsIdentifier: Nameable[]): Observable<T> {
+  takeLatest$<T>(nameablesAsIdentifier: Nameable[], alternative?: any): Observable<T> {
     return this.takeMany$<T>(nameablesAsIdentifier, 1)
       .map(states => {
-        return (states.length > 0 ? states[0] : null);
+        const _alt = lodash.isUndefined(alternative) ? null : alternative;
+        return (states.length > 0 ? states[0] : _alt);
       });
   }
   getState$ = this.takeLatest$;
