@@ -16,7 +16,7 @@ export { KeyInput };
     <h2>{{title}} - PAGE4</h2>
     <hr />
     <div>Aを押すとグラフ描画が始まり、Zを押すと終わる。AからZまでの入力速度を計るようにしたい。グラフY軸の単位は秒。実装中。</div>
-    <div>「Start Truetime Replay」をクリックして始まるリプレイは"実際に要した時間"を再現したリプレイ。</div>
+    <div>「Start True-time Replay」をクリックして始まるリプレイは"実際に要した時間"を再現したリプレイ。</div>
     <hr />
     <div>Input A～Z: <input type="text" [(ngModel)]="text" id="keyinput" /></div>
     <div *ngIf="textFinished">Finished: {{textFinished}}</div>
@@ -27,7 +27,7 @@ export { KeyInput };
     <div>Result: {{result}}</div>
     <div id="chart"></div>
     <hr />
-    <div><button (click)="startTruetimeReplay()">Start Truetime Replay</button></div>
+    <div><button (click)="startTruetimeReplay()">Start True-time Replay</button></div>
     <div id="chartreplay"></div>    
   `,
   providers: [Page4Service, Page4State],
@@ -54,7 +54,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     this.chartReplay = c3.generate({
       bindto: '#chartreplay',
       data: { columns: [['diff_time']] },
-      axis: { x: { type: 'category' } }
+      axis: { x: { type: 'category' } },      
     });
     // -----
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
@@ -147,7 +147,8 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
         this.endTime = lodash.now();
         this.textFinished = this.text;
         this.textMissed = null;
-        alert('COMPLETED! ' + this.result);
+        // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
+        this.startTruetimeReplay();
       } else {
         this.textMissed = this.text;
       }
