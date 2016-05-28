@@ -25,7 +25,7 @@ export class Page4State {
   get title() { return this.store.takeLatest<string>(S._TITLE_); }
 
   get keyInputs$() { return this.store.takeMany$<KeyInput>(S._KEYINPUT_); }
-  get keyInputsReplayStream$$() { return this.store.takePresetReplayArrayStream$<KeyInput>(S._KEYINPUT_, { interval: null, truetime: true }); }
+  get keyInputsReplayStream$$() { return this.store.takePresetReplayArrayStream$<KeyInput>(S._KEYINPUT_, { truetime: true }); }
 
   // get uniqueId() { return this.store.takeLatest<string>(S._UNIQUEID_); }
 }

@@ -20,6 +20,7 @@ type SnapShot = StateObject[];
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
+const DEFAULT_INTERVAL = 10;
 const IDENTIFIER_PREFIX = '#';
 // const TIMESTAMP = 'timestamp';
 
@@ -243,7 +244,7 @@ export class Store {
   // output: |--e--c--a--> (if descending is true)
   takePresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
     const {limit, interval, descending} = options;
-    const _interval = interval && interval > 0 ? interval : 1;
+    const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     return this.takeMany$<T>(nameablesAsIdentifier, limit)
       .map(states => states.length > 0 ? states : [null]) // statesが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
@@ -262,7 +263,7 @@ export class Store {
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
   takePresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
     const {limit, interval, descending, truetime} = options;
-    const _interval = interval && interval > 0 ? interval : 1;
+    const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     let ary: StateObject[] = [];
     let previousTime: number;
     return this.takeManyAsStateObject$(nameablesAsIdentifier, limit)
@@ -270,7 +271,7 @@ export class Store {
       .map(objs => descending ? objs : objs.reverse())
       .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0)
       .do(() => ary = [])
-      .switchMap(objs => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
+      .switchMap(objs => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。        
         if (truetime && objs.length > 0) {
           return Observable.timer(1, 1)
             .takeWhile(x => x < objs.length)
@@ -282,29 +283,24 @@ export class Store {
             });
         } else {
           return Observable.timer(1, _interval)
+            .takeWhile(x => x < objs.length)
             .map(x => {
               ary.push(objs[x]);
               return ary;
-            })
-            .take(objs.length);
+            });
+          // .take(objs.length);
         }
       })
       .map(objs => objs.map(obj => pickValueFromObject<T>(obj)));
   }
   getPresetReplayArrayStream$ = this.takePresetReplayArrayStream$;
 
-  putDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
+  setDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     let obj = {};
     obj[identifier] = subscription;
-
-    if (!this.isSuspending) {
-      this.subscriptions.push(obj);
-    } else { // サスペンドモードのとき。
-      this.tempSubscriptions.push(obj);
-    }
+    this.subscriptions.push(obj);
   }
-  setDisposableSubscription = this.putDisposableSubscription;
 
   disposeSubscriptions(nameablesAsIdentifier: Nameable[] = [this]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
@@ -519,7 +515,7 @@ class Logger {
 ////////////////////////////////////////////////////////////////////////////
 // Interfaces
 interface ReplayStreamOptions {
-  interval: number;
+  interval?: number;
   limit?: number;
   descending?: boolean;
   truetime?: boolean;

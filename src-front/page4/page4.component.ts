@@ -51,6 +51,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       axis: { x: { type: 'category' } }
       // transition: { duration: 100 }
     });
+    // リプレイ用のc3のグラフを準備する。
     this.chartReplay = c3.generate({
       bindto: '#chartreplay',
       data: { columns: [['diff_time']] },
@@ -108,7 +109,6 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
 
       // Storeからデータを受け取ってグラフを更新する。キーボード入力がトリガーとなりリアルタイムに更新される。
       this.state.keyInputs$
-        // .map(objs => objs.filter(obj => obj.uniqueId === this.uniqueId)) // 絞り込み
         .map(objs => objs.reverse()) // 降順を昇順に反転
         .do(objs => {
           if (objs.length > 0) {
