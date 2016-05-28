@@ -18,6 +18,7 @@ export class Page6Service extends AppService {
   }
 
   requestWikiLikeFalcor(keyword: string): Observable<{}> {
+    if (keyword.length === 0) { return Observable.of({ 'error': 'No keyword is not accepted.' }) }
     const identifier = [...S._WIKIPEDIA_, JSON.stringify({ keyword })];
     const cache = this.store.takeLatest<any>(identifier); // キャッシュがあるか探す。
     if (cache) { // キャッシュがあればそれを返す。なければHTTPリクエストする。

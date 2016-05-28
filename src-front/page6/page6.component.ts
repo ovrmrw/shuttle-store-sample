@@ -43,7 +43,7 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   // Falcorのように一度取得したデータはキャッシュされ、次回はキャッシュから取得する。
   requestWiki() {
     this._$result = 'Requesting...';
-    this.service.requestWikiLikeFalcor(this.keyword)
+    this.service.requestWikiLikeFalcor(this.keyword ? this.keyword.trim() : '')
       .do(result => this._$result = result)
       .do(result => console.log(result))
       .subscribe(() => this.cd.markForCheck());
