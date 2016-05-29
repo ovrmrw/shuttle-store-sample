@@ -43,6 +43,8 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
           // inputタグの値を保存する。
           this.service.savePrimitiveValuesToLocalStorage(this, [this.service, this.state, this.cd]);
         }),
+
+      this.service.lazyConnection$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
     ];
   }
 

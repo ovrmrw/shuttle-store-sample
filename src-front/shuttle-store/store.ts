@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Http, Headers } from '@angular/http';
 import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import { Observable } from 'rxjs/Observable';
 // import { Subject } from 'rxjs/Subject';
@@ -18,11 +19,12 @@ type SnapShot = State[];
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
+export const LAZY_CONNECTION = 'client-can-detect-connetion-to-store-lazily';
 
 @Injectable()
 export class Store {
-  private states: State[];
-  private osnLatest: number; // ObjectSequenceNumber
+  private states: State[] = [];
+  private osnLatest: number = null; // ObjectSequenceNumber
   private subscriptions: DisposableSubscription[] = [];
   private snapShots: SnapShot[] = [];
   private _dispatcher$: Subject<any> = new Subject<any>();
@@ -33,17 +35,33 @@ export class Store {
   private isSuspending: boolean = false;
   private tempStates: State[] = [];
 
-  constructor() {
-    let objsFromLS: State[];
-    try {
-      console.time('localStorageGetItem');
-      objsFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
-      console.timeEnd('localStorageGetItem');
+  constructor(
+    private http: Http
+  ) {
+    // let objsFromLS: State[];
+    // try {
+    //   console.time('localStorageGetItem');
+    //   objsFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+    //   console.timeEnd('localStorageGetItem');
+    // } catch (err) {
+    //   console.error(err);
+    // }
+    try { // LevelDBからデータを取得する。
+      console.time('levelDbGetItem');
+      this.http.get('/leveldb')
+        .map(res => res.json() as string)
+        .map(json => JSON.parse(json))
+        .do(states => {
+          this.states = states;
+          this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+          this._dispatcher$.next(new State({ key: LAZY_CONNECTION, value: true, osn: this.osnLatest++, ruleOptions: new StateRule({ limit: 1 }) })); // statesをロードしたらクライアントにPush通知する。
+        })
+        .subscribe(() => console.timeEnd('levelDbGetItem'), err => console.error(err));
     } catch (err) {
       console.error(err);
     }
-    this.states = objsFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
-    this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+    // this.states = []; // objsFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
+    // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
@@ -64,10 +82,21 @@ export class Store {
     this._localStorageKeeper$
       .debounceTime(250)
       .subscribe(states => {
-        try {
-          console.time('localStorageSetItem');
-          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(states));
-          console.timeEnd('localStorageSetItem');
+        // try {
+        //   console.time('localStorageSetItem');
+        //   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(states));
+        //   console.timeEnd('localStorageSetItem');
+        // } catch (err) {
+        //   console.error(err);
+        // }
+        try { // LevelDBにデータを保存する。
+          const headers = new Headers({ 'Content-Type': 'application/json' });
+          const body = JSON.stringify(states);
+          console.time('levelDbSetItem');
+          return this.http.post('/leveldb', body, { headers })
+            .map(res => res.json() as string)
+            .do(message => console.log(message))
+            .subscribe(() => console.timeEnd('levelDbSetItem'));
         } catch (err) {
           console.error(err);
         }
@@ -146,6 +175,7 @@ export class Store {
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
+    if (!this.osnLatest) { return new Logger('Error: States on Store is not loaded yet.'); }
     const identifier = generateIdentifier(nameablesAsIdentifier);
     const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest++, ruleOptions: ruleOptions });
 
@@ -215,7 +245,7 @@ export class Store {
   // output: |--a--c--e-->
   // output: |--e--c--a--> (if descending is true)
   takePresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
-    const {limit, interval, descending, truetime} = options;
+    const {limit, interval, descending, truetime } = options;
     const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     let previousTime: number;
     return this.takeManyAsState$(nameablesAsIdentifier, limit)
@@ -245,7 +275,7 @@ export class Store {
   // output: |--[a]--[a,c]--[a,c,e]-->
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
   takePresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
-    const {limit, interval, descending, truetime} = options;
+    const {limit, interval, descending, truetime } = options;
     const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     let results: State[];
     let previousTime: number;
@@ -511,9 +541,9 @@ interface StateRuleOptions {
 ////////////////////////////////////////////////////////////////////////////
 // Logger Class
 class Logger {
-  constructor(private state: State) { }
+  constructor(private state: State | string) { }
 
-  log(message?: string) {
+  log(message?: string): any {
     if (message) {
       console.log('===== Added State: ' + message + ' =====');
     } else {
@@ -524,6 +554,7 @@ class Logger {
       return p;
     }, {});
     console.log(obj);
+    return this;
   }
 }
 

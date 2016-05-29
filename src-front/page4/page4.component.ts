@@ -125,6 +125,8 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
           }
         })
         .subscribe(),
+
+      this.service.lazyConnection$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
     ];
   }
 

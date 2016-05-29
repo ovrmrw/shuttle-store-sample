@@ -35,7 +35,11 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
     this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 
-  registerSubscriptionsEveryActivate() { }
+  registerSubscriptionsEveryActivate() {
+    this.service.disposableSubscriptions = [
+      this.service.lazyConnection$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
+    ]
+  }
 
   // Falcorのように一度取得したデータはキャッシュされ、次回はキャッシュから取得する。
   requestWiki() {
