@@ -13,36 +13,28 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 type Nameable = Function | Object | string;
-type StateObject = { string?: any, osn: number, timestamp: number, rule: StateRule }; // osn:ObjectSequenceNumber
-type SubscriptionObject = { string?: Subscription };
-// type RuleObject = { string?: StateRule };
-type SnapShot = StateObject[];
+type SnapShot = State[];
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
-const IDENTIFIER_PREFIX = '#';
-// const TIMESTAMP = 'timestamp';
 
 @Injectable()
 export class Store {
-  private states: StateObject[];
+  private states: State[];
   private osnLatest: number; // ObjectSequenceNumber
-  private subscriptions: SubscriptionObject[] = [];
-  // private rule: RuleObject = {};
+  private subscriptions: DisposableSubscription[] = [];
   private snapShots: SnapShot[] = [];
   private _dispatcher$: Subject<any> = new Subject<any>();
-  private _localStorageKeeper$: Subject<StateObject[]> = new Subject<StateObject[]>();
-  private _returner$: BehaviorSubject<StateObject[]>;
+  private _localStorageKeeper$: Subject<State[]> = new Subject<State[]>();
+  private _returner$: BehaviorSubject<State[]>;
 
   // サスペンドで使う変数群。
   private isSuspending: boolean = false;
-  private tempStates: StateObject[] = [];
-  private tempSubscriptions: SubscriptionObject[] = [];
-  // private tempRule: RuleObject = {};
+  private tempStates: State[] = [];
 
   constructor() {
-    let objsFromLS: StateObject[];
+    let objsFromLS: State[];
     try {
       console.time('localStorageGetItem');
       objsFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -56,7 +48,7 @@ export class Store {
 
     this._dispatcher$
       .subscribe(newState => {
-        if (newState) { // nullがthis.statesにpushされないように制御する。
+        if (newState instanceof State) { // nullがthis.statesにpushされないように制御する。
           this.states.push(newState);
           this.snapShots = []; // this.statesに新しい値がpushされたらsnapshotsは初期化する。       
         }
@@ -71,10 +63,10 @@ export class Store {
     // debounceTimeで頻度を抑えながらLocalStorageに保存する。
     this._localStorageKeeper$
       .debounceTime(250)
-      .subscribe(stateObjects => {
+      .subscribe(states => {
         try {
           console.time('localStorageSetItem');
-          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateObjects));
+          window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(states));
           console.timeEnd('localStorageSetItem');
         } catch (err) {
           console.error(err);
@@ -91,12 +83,8 @@ export class Store {
   // サスペンドモードから戻る
   revertSuspend() {
     if (this.isSuspending) {
-      // Object.keys(this.tempRule).forEach(key => this.rule[key] = this.tempRule[key]);
-      // this.tempRule = {};
-      this.tempStates.forEach(obj => this.states.push(obj));
+      this.tempStates.forEach(state => this.states.push(state));
       this.tempStates = [];
-      this.tempSubscriptions.forEach(obj => this.subscriptions.push(obj));
-      this.tempSubscriptions = [];
       this.isSuspending = false;
       this._dispatcher$.next(null);
     }
@@ -104,8 +92,8 @@ export class Store {
 
   private createSnapShot() {
     if (this.isSuspending) {
-      const objs = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
-      this.snapShots.push(objs);
+      const states = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
+      this.snapShots.push(states);
     }
   }
 
@@ -142,8 +130,8 @@ export class Store {
       this.suspend();
     }
     if (this.isSuspending && this.snapShots.length > 0) {
-      const objs = this.snapShots[this.snapShots.length - 1]; // 配列の末尾を取得
-      this.states = objs;
+      const states = this.snapShots[this.snapShots.length - 1]; // 配列の末尾を取得
+      this.states = states;
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
       console.log(this.snapShots);
     } else {
@@ -159,81 +147,65 @@ export class Store {
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
     const identifier = generateIdentifier(nameablesAsIdentifier);
-    let obj = {} as StateObject; // State以外にIDENTIFIER_PREFIXで始まるプロパティを生やさないこと。
-    obj[identifier] = lodash.cloneDeep(data);
-    obj.timestamp = lodash.now(); // TODO:timestampを使って何かする。
-    obj.osn = this.osnLatest++;
-    obj.rule = ruleOptions ? new StateRule(ruleOptions) : null;
+    const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest++, ruleOptions: ruleOptions });
 
     if (!this.isSuspending) {
-      // if (ruleOptions) { // Stateの管理に特別なルールが必要な場合はここでルールを保持する。
-      //   this.rule[identifier] = new StateRule(ruleOptions);
-      // }
-      this._dispatcher$.next(obj); // dispatcherをsubscribeしている全てのSubscriberをキックする。
-    } else { // サスペンドモードのとき。      
-      // if (ruleOptions) {
-      //   this.tempRule[identifier] = new StateRule(ruleOptions);
-      // }
-      this.tempStates.push(obj);
+      this._dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+    } else { // サスペンドモードのとき。
+      this.tempStates.push(state);
     }
-    return new Logger(obj);
+    return new Logger(state);
   }
   setState = this.put;
 
   takeMany<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
     const identifier = generateIdentifier(nameablesAsIdentifier);
-    const objs = this.states
-      .filter(obj => obj && identifier in obj)
-      .map(obj => pickValueFromObject(obj));
-    let states: T[];
-    if (objs.length > 0) {
-      const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-      states = objs.slice(objs.length - _limit); // 配列の先頭側から要素を削除する。
+    const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
+    const values = this.states
+      .filter(state => state && state.key === identifier)
+      .map(state => pluckValueFromState<T>(state));
+    let results: T[];
+    if (values.length > 0) {
+      results = values.slice(values.length - _limit); // 配列の先頭側から要素を削除する。
     } else {
-      states = [];
+      results = [];
     }
-    return lodash.cloneDeep(states).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+    return lodash.cloneDeep(results).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
   getStates = this.takeMany;
 
   takeLatest<T>(nameablesAsIdentifier: Nameable[], alternative?: any): T {
-    const ary = this.takeMany<T>(nameablesAsIdentifier, 1);
-    const _alt = lodash.isUndefined(alternative) ? null : alternative;
-    const state = ary && ary.length > 0 ? ary[0] : _alt;
-    return state;
+    const values = this.takeMany<T>(nameablesAsIdentifier, 1);
+    const _alt: T = lodash.isUndefined(alternative) ? null : alternative;
+    const value = values && values.length > 0 ? values[0] : _alt;
+    return value;
   }
   getState = this.takeLatest;
 
-  private takeManyAsStateObject$(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<StateObject[]> {
+  private takeManyAsState$(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<State[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
+    const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
     return this._returner$
-      .map(objs => objs.filter(obj => obj && identifier in obj))
-      .map(objs => {
-        const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return objs.slice(objs.length - _limit); // 配列の先頭側から要素を削除する。
-      })
-      .map(objs => lodash.cloneDeep(objs).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+      .map(states => states.filter(obj => obj && obj.key === identifier))
+      .map(states => states.slice(states.length - _limit)) // 配列の先頭側から要素を削除する。
+      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
 
   takeMany$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
+    const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
     return this._returner$
-      .map(objs => objs.filter(obj => obj && identifier in obj))
-      .map(objs => objs.map(obj => pickValueFromObject(obj)))
-      .map(states => {
-        const _limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-        return states.slice(states.length - _limit); // 配列の先頭側から要素を削除する。
-      })
-      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+      .map(states => states.filter(obj => obj && obj.key === identifier))
+      .map(states => states.map(obj => pluckValueFromState<T>(obj)))
+      .map(values => values.slice(values.length - _limit)) // 配列の先頭側から要素を削除する。
+      .map(values => lodash.cloneDeep(values).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
   getStates$ = this.takeMany$;
 
   takeLatest$<T>(nameablesAsIdentifier: Nameable[], alternative?: any): Observable<T> {
+    const _alt: T = lodash.isUndefined(alternative) ? null : alternative;
     return this.takeMany$<T>(nameablesAsIdentifier, 1)
-      .map(states => {
-        const _alt = lodash.isUndefined(alternative) ? null : alternative;
-        return (states.length > 0 ? states[0] : _alt);
-      });
+      .map(values => values.length > 0 ? values[0] : _alt);
   }
   getState$ = this.takeLatest$;
 
@@ -246,15 +218,15 @@ export class Store {
     const {limit, interval, descending, truetime} = options;
     const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     let previousTime: number;
-    return this.takeManyAsStateObject$(nameablesAsIdentifier, limit)
-      .map(objs => objs.length > 0 ? objs : [null]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
-      .map(objs => descending ? objs : objs.reverse())
-      .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0) // previousTimeをセットする。
+    return this.takeManyAsState$(nameablesAsIdentifier, limit)
+      .map(states => states.length > 0 ? states : [new State()]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
+      .map(states => descending ? states : states.reverse())
+      .do(states => previousTime = states[0].timestamp) // previousTimeをセットする。
       .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。
-        if (truetime && states.length > 0) { // truetimeがtrueなら実時間を再現したリプレイストリームを作る。
+        if (truetime) { // truetimeがtrueなら実時間を再現したリプレイストリームを作る。
           return Observable.timer(1, 1)
             .takeWhile(x => x < states.length)
-            .delayWhen(x => Observable.interval(states[x] && states[x].timestamp ? states[x].timestamp - previousTime : _interval))
+            .delayWhen(x => Observable.interval(states[x] ? Math.abs(states[x].timestamp - previousTime) : _interval))
             .do(x => previousTime = states[x].timestamp) // previousTimeを更新する。
             .map(x => states[x]);
         } else {
@@ -263,7 +235,7 @@ export class Store {
             .map(x => states[x]);
         }
       })
-      .map(obj => pickValueFromObject<T>(obj));
+      .map(states => pluckValueFromState<T>(states));
   }
   getPresetReplayStream$ = this.takePresetReplayStream$;
 
@@ -275,57 +247,55 @@ export class Store {
   takePresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
     const {limit, interval, descending, truetime} = options;
     const _interval = interval && interval > 0 ? interval : DEFAULT_INTERVAL;
-    let ary: StateObject[] = [];
+    let results: State[];
     let previousTime: number;
-    return this.takeManyAsStateObject$(nameablesAsIdentifier, limit)
-      .map(objs => objs.length > 0 ? objs : [null]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
-      .map(objs => descending ? objs : objs.reverse())
-      .do(objs => previousTime = objs[0] && objs[0].timestamp ? objs[0].timestamp : 0) // previousTimeをセットする。
-      .do(() => ary = [])
-      .switchMap(objs => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。        
-        if (truetime && objs.length > 0) { // truetimeがtrueなら実時間を再現したリプレイストリームを作る。
+    return this.takeManyAsState$(nameablesAsIdentifier, limit)
+      .map(states => states.length > 0 ? states : [new State()]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
+      .map(states => descending ? states : states.reverse())
+      .do(states => previousTime = states[0].timestamp) // previousTimeをセットする。
+      .do(() => results = [])
+      .switchMap(states => { // switchMapは次のストリームが流れてくると"今流れているストリームをキャンセルして"新しいストリームを流す。        
+        if (truetime) { // truetimeがtrueなら実時間を再現したリプレイストリームを作る。
           return Observable.timer(1, 1)
-            .takeWhile(x => x < objs.length)
-            .delayWhen(x => Observable.interval(objs[x] && objs[x].timestamp ? objs[x].timestamp - previousTime : _interval))
-            .do(x => previousTime = objs[x].timestamp) // previousTimeを更新する。
+            .takeWhile(x => x < states.length)
+            .delayWhen(x => Observable.interval(states[x] ? Math.abs(states[x].timestamp - previousTime) : _interval))
+            .do(x => previousTime = states[x].timestamp) // previousTimeを更新する。
             .map(x => {
-              ary.push(objs[x]);
-              return ary;
+              results.push(states[x]);
+              return results;
             });
         } else {
           return Observable.timer(1, _interval)
-            .takeWhile(x => x < objs.length)
+            .takeWhile(x => x < states.length)
             .map(x => {
-              ary.push(objs[x]);
-              return ary;
+              results.push(states[x]);
+              return results;
             });
         }
       })
-      .map(objs => objs.map(obj => pickValueFromObject<T>(obj)));
+      .map(states => states.map(obj => pluckValueFromState<T>(obj)));
   }
   getPresetReplayArrayStream$ = this.takePresetReplayArrayStream$;
 
   setDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
-    let obj = {};
-    obj[identifier] = subscription;
+    const obj = new DisposableSubscription({ key: identifier, value: subscription });
     this.subscriptions.push(obj);
   }
 
   disposeSubscriptions(nameablesAsIdentifier: Nameable[] = [this]): void {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     this.subscriptions
-      .filter(obj => obj && identifier in obj)
-      .map(obj => pickValueFromObject(obj))
+      .filter(obj => obj && obj.key === identifier)
+      .map(obj => obj.value)
       .forEach(subscription => {
         subscription.unsubscribe();
       });
     const aliveSubscriptions = this.subscriptions
+      .filter(obj => obj && !!obj.key)
       .filter(obj => {
-        const subscription = pickValueFromObject(obj);
-        if (subscription && !subscription.isUnsubscribed) {
-          return true;
-        }
+        const subscription = obj.value;
+        return subscription && !subscription.isUnsubscribed ? true : false;
       });
     this.subscriptions = null;
     this.subscriptions = aliveSubscriptions;
@@ -348,16 +318,16 @@ export class Store {
 
 ////////////////////////////////////////////////////////////////////////////
 // Helper Functions
-function gabageCollector(stateObjects: StateObject[]): StateObject[] {
+function gabageCollector(states: State[]): State[] {
   console.time('gabageCollector');
-  const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
+  const keys = states.filter(obj => obj && !!obj.key).map(obj => obj.key);
   const uniqKeys = lodash.uniq(keys);
   // console.log('Keys: ' + uniqKeys.join(', '));
-  let newObjs: StateObject[] = [];
+  let newObjs: State[] = [];
 
   // key毎に保存最大数を超えたものをカットして新しい配列を作る。
   uniqKeys.forEach(identifier => {
-    const objs = stateObjects.filter(obj => obj && identifier in obj);
+    const objs = states.filter(obj => obj && obj.key === identifier);
     const lastObj = objs[objs.length - 1]; // 配列の末尾を取得
     const limit = lastObj.rule && lastObj.rule.limit ? lastObj.rule.limit : DEFAULT_LIMIT;
     if (objs.length > limit) {
@@ -373,22 +343,22 @@ function gabageCollector(stateObjects: StateObject[]): StateObject[] {
 
 // gabageCollectorの処理速度が高速になるようにチューニングしたもの。10倍近く速い。
 // 参考: http://qiita.com/keroxp/items/67804391a8d65eb32cb8
-function gabageCollectorFastTuned(stateObjects: StateObject[]): StateObject[] {
+function gabageCollectorFastTuned(states: State[]): State[] {
+  if (states.length === 0) { return states; }
   console.time('gabageCollectorFastTuned');
   // const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
   let keys: string[] = [];
   // let i = 0;
-  for (let i = 0; i < stateObjects.length; i = (i + 1) | 0) {
-    const stateObject = stateObjects[i];
-    if (stateObject && typeof stateObject === 'object') {
-      const key = Object.keys(stateObject).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
-      keys.push(key);
+  for (let i = 0; i < states.length; i = (i + 1) | 0) {
+    const state = states[i];
+    if (state && !!state.key) { // この段階でstate.keyがnullのものは除外される。
+      keys.push(state.key);
     }
     // i = (i + 1) | 0;
   }
   const uniqKeys = lodash.uniq(keys);
   // console.log('Keys: ' + uniqKeys.join(', '));
-  let newObjs: StateObject[] = [];
+  let newObjs: State[] = [];
 
   // key毎に保存最大数を超えたものをカットして新しい配列を作る。
   // uniqKeys.forEach(key => {
@@ -403,20 +373,20 @@ function gabageCollectorFastTuned(stateObjects: StateObject[]): StateObject[] {
   for (let j = 0; j < uniqKeys.length; j = (j + 1) | 0) {
     // const objs = stateObjects.filter(obj => obj && uniqKeys[i] in obj);
     const identifier = uniqKeys[j];
-    let objs: StateObject[] = [];
+    let objs: State[] = [];
     // let k = 0;
-    for (let k = 0; k < stateObjects.length; k = (k + 1) | 0) {
-      const stateObject = stateObjects[k];
-      if (stateObject && identifier in stateObject) {
-        objs.push(stateObject);
+    for (let k = 0; k < states.length; k = (k + 1) | 0) {
+      const state = states[k];
+      if (state && state.key === identifier) {
+        objs.push(state);
       }
       // k = (k + 1) | 0;
     }
 
     // StateRuleが保持されている場合、最大保存数を差し替える。
-    const objLast = objs[objs.length - 1]; // 配列の末尾を取得
-    const limit = objLast.rule && objLast.rule.limit ? objLast.rule.limit : DEFAULT_LIMIT;
-    const filterId = objLast.rule && objLast.rule.filterId ? objLast.rule.filterId : null;
+    const stateLast = objs[objs.length - 1]; // 配列の末尾を取得
+    const limit = stateLast.rule && stateLast.rule.limit ? stateLast.rule.limit : DEFAULT_LIMIT;
+    const filterId = stateLast.rule && stateLast.rule.filterId ? stateLast.rule.filterId : null;
 
     // uniqueIdが指定されている場合、同じuniqueIdのものだけフィルタリングする。
     if (filterId) {
@@ -448,7 +418,7 @@ function gabageCollectorFastTuned(stateObjects: StateObject[]): StateObject[] {
 }
 
 function generateIdentifier(nameables: Nameable[]): string {
-  let ary: string[] = [IDENTIFIER_PREFIX];
+  let ary: string[] = [];
 
   nameables.reduce((p: string[], nameable) => {
     if (nameable && typeof nameable === 'string') {
@@ -466,19 +436,57 @@ function generateIdentifier(nameables: Nameable[]): string {
   return ary.join('_');
 }
 
-function pickValueFromObject<T>(obj: { string?: T }): T {
-  try {
-    const key = Object.keys(obj).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
-    return obj[key] as T;
-  } catch (err) {
+function pluckValueFromState<T>(obj: State | Object): T {
+  // try {
+  //   const key = Object.keys(obj).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
+  //   return obj[key] as T;
+  // } catch (err) {
+  //   return obj as T;
+  // }
+  if (obj && obj instanceof State) {
+    return obj.value as T;
+  } else if (obj && 'value' in obj) { // LocalStorageからStatesを復旧した場合はこちらを通る。
+    return obj['value'] as T;
+  } else {
     return obj as T;
   }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////
+// State Class
+class State {
+  key: string;
+  value: any;
+  osn: number;
+  timestamp: number;
+  rule: StateRule;
+  constructor(options?: StateOptions) {
+    if (options) {
+      const {key, value, osn, ruleOptions} = options;
+      this.key = key ? key : null;
+      this.value = lodash.isUndefined(value) ? null : value;
+      this.osn = osn;
+      this.rule = ruleOptions ? new StateRule(ruleOptions) : null;
+    } else {
+      this.key = null;
+      this.value = null;
+      this.osn = null;
+      this.rule = null;
+    }
+    this.timestamp = lodash.now();
+  }
+}
+interface StateOptions {
+  key: string;
+  value: any;
+  osn: number;
+  ruleOptions: StateRuleOptions;
+}
+
+////////////////////////////////////////////////////////////////////////////
 // StateRule Class
-export class StateRule {
+class StateRule {
   limit: number;
   rollback: boolean;
   filterId: string | number;
@@ -494,18 +502,16 @@ export class StateRule {
     this.filterId = filterId ? filterId : null;
   }
 }
-
 interface StateRuleOptions {
   limit?: number;
   rollback?: boolean;
   filterId?: string | number;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////
 // Logger Class
 class Logger {
-  constructor(private state: StateObject) { }
+  constructor(private state: State) { }
 
   log(message?: string) {
     if (message) {
@@ -519,6 +525,22 @@ class Logger {
     }, {});
     console.log(obj);
   }
+}
+
+////////////////////////////////////////////////////////////////////////////
+// DisposableSubscription Class
+class DisposableSubscription {
+  key: string;
+  value: Subscription;
+  constructor(options: DisposableSubscriptionOptions) {
+    const {key, value} = options;
+    this.key = key ? key : null;
+    this.value = value ? value : null;
+  }
+}
+interface DisposableSubscriptionOptions {
+  key: string;
+  value: Subscription;
 }
 
 

@@ -13,7 +13,7 @@ Store now has Undo/Redo feature, it allows you to undo all of your operations.
 
 ---
 
-Page1 & 2 is a sample for my Store. You can see that Store keeps and returns State & State-history.
+Page1 & 2 is a sample for my Store. You can see that Store keeps and returns States & States-history.
 
 Page4 is a sample of Angular2 + C3. Your inputs cause the time graph change in real-time.
 

@@ -11,7 +11,7 @@ export abstract class AppService extends StoreService {
   static _UNIQUEID_ = ['uniqueid'];
 
   static _FORMDATA_ = ['formdata'];
-  
+
   static _WIKIPEDIA_ = ['wikipedia-api'];
 
   constructor(store: Store) { super(store); }

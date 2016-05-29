@@ -14,12 +14,13 @@ import { Page1Service, Page1State } from './page1.service';
     <hr />
     <h3>Settings</h3>
     <div>Title: <input type="text" [(ngModel)]="title" /></div>
-    <div>Color: <input type="text" [(ngModel)]="color" /><button (click)="setColor()">Push</button></div>
-    <div><button (click)="clearState()">Clear State</button></div>
+    <div>Color: <input type="text" [(ngModel)]="color" /><button (click)="setColor()">Push</button></div>    
     <hr />
     <h3>Replay</h3>
     <div>{{_$title}}</div>
     <div><ul><li *ngFor="let color of _$colors"><span [style.background-color]="color">{{color}}</span></li></ul></div>
+    <hr />
+    <div><button (click)="clearState()">Clear State</button></div>
   `,
   providers: [Page1Service, Page1State],
   changeDetection: ChangeDetectionStrategy.OnPush

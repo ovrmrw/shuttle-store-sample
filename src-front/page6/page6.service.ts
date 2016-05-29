@@ -14,11 +14,11 @@ export class Page6Service extends AppService {
   requestWiki(keyword: string): Observable<any> {
     const _keyword = encodeURIComponent(keyword);
     return this.jsonp.get('https://ja.wikipedia.org/w/api.php?format=json&action=query&prop=revisions&rvprop=content&titles=' + _keyword + '&callback=JSONP_CALLBACK')
-      .map(res => res.json())
+      .map(res => res.json());
   }
 
   requestWikiLikeFalcor(keyword: string): Observable<any> {
-    if (keyword.length === 0) { return Observable.of({ 'error': 'No keyword is not accepted.' }) }
+    if (keyword.length === 0) { return Observable.of({ 'error': 'No keyword is not accepted.' }); }
     const identifier = [...S._WIKIPEDIA_, JSON.stringify({ keyword })];
     const cache = this.store.takeLatest<any>(identifier); // キャッシュがあるか探す。
     if (cache) { // キャッシュがあればそれを返す。なければHTTPリクエストする。

@@ -17,7 +17,7 @@ import { Page3Service, Page3State } from './page3.service';
     <div>String: <input type="text" [(ngModel)]="str_global" />{{str_global}}</div>
     <div>Number: <input type="text" [(ngModel)]="num" />{{num}}</div>
     <div>Boolean: <input type="text" [(ngModel)]="bool" />{{bool}}</div>
-    <div>Any: <input type="text" [(ngModel)]="objHasValue" />{{objHasValue}}</div>
+    <div>Any: <input type="text" [(ngModel)]="objHasValue" />{{objHasValue}}</div>    
   `,
   providers: [Page3Service, Page3State],
   changeDetection: ChangeDetectionStrategy.OnPush

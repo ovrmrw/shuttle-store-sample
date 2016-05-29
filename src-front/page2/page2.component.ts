@@ -15,6 +15,8 @@ import { Page2Service, Page2State } from './page2.service';
     <h3>True-time Replay</h3>
     <div>{{_$title}}</div>
     <div><ul><li *ngFor="let color of _$colors"><span [style.background-color]="color">{{color}}</span></li></ul></div>
+    <hr />
+    <div><button (click)="clearState()">Clear State</button></div>
   `,
   providers: [Page2Service, Page2State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -48,6 +50,10 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   get title() { return this.state.title; }
+
+  clearState() {
+    this.service.clearStatesAndLocalStorage();
+  }
 
   // Observableにより更新される変数なので勝手に変更しないこと。;
   private _$title: string;

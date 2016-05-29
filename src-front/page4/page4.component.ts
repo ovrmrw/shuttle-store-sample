@@ -29,6 +29,8 @@ export { KeyInput };
     <hr />
     <div><button (click)="startTruetimeReplay()">Start True-time Replay</button></div>
     <div id="chartreplay"></div>    
+    <hr />
+    <div><button (click)="clearState()">Clear State</button></div>
   `,
   providers: [Page4Service, Page4State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -55,7 +57,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     this.chartReplay = c3.generate({
       bindto: '#chartreplay',
       data: { columns: [['diff_time']] },
-      axis: { x: { type: 'category' } },      
+      axis: { x: { type: 'category' } },
     });
     // -----
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
@@ -111,7 +113,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       this.state.keyInputs$
         .map(objs => objs.reverse()) // 降順を昇順に反転
         .do(objs => {
-          if (objs.length > 0) {
+          if (objs.filter(obj => 'diff' in obj && 'code' in obj).length > 0) {
             const diffs = objs.map(obj => obj.diff / 1000); // diffの単位をミリ秒から秒に変換。
             const letters = objs.map(obj => obj.code.charAt(3)); // ex)'KeyA'から'A'を取り出す。
             this.chart.load({ // c3のグラフを更新する。
@@ -160,7 +162,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
   startTruetimeReplay() {
     this.service.disposableSubscription = this.state.keyInputsReplayStream$$
       .do(objs => {
-        if (objs.length > 0) {
+        if (objs.filter(obj => 'diff' in obj && 'code' in obj).length > 0) {
           const diffs = objs.map(obj => obj.diff / 1000); // diffの単位をミリ秒から秒に変換。
           const letters = objs.map(obj => obj.code.charAt(3)); // ex)'KeyA'から'A'を取り出す。
           this.chartReplay.load({ // c3のグラフを更新する。
@@ -176,8 +178,9 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
 
   get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
 
-  // set uniqueId(data: string) { this.service.putUniqueId(data).log('UniqueId'); }
-  // get uniqueId() { return this.state.uniqueId; }
+  clearState() {
+    this.service.clearStatesAndLocalStorage();
+  }
 
   text: string;
   textFinished: string;

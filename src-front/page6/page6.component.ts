@@ -18,6 +18,8 @@ import { Page6Service, Page6State } from './page6.service';
     <div><button (click)="requestWiki()">Wikipedia Search</button></div>
     <hr />
     {{_$result | json}}
+    <hr />
+    <div><button (click)="clearState()">Clear State</button></div>
   `,
   providers: [Page6Service, Page6State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -45,6 +47,10 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   get title() { return this.state.title; }
+
+  clearState() {
+    this.service.clearStatesAndLocalStorage();
+  }
 
   private keyword: string;
   private _$result: any;

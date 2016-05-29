@@ -35,6 +35,8 @@ import { Page5Service, Page5State } from './page5.service';
     <hr />
     <h3>Replay</h3>
     <div>{{_$formReplay | json}}</div>
+    <hr />
+    <div><button (click)="clearState()">Clear State</button></div>
   `,
   providers: [Page5Service, Page5State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -81,7 +83,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   clearForm() {
-    this.service.putForm(new FormData()).log('Initialize Form')
+    this.service.putForm(new FormData()).log('Initialize Form');
   }
 
   rollback() {
@@ -95,6 +97,10 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
 
   // このrangeを用意しておかないとtemplateでうまくngForできない。本当はこんなことしたくない。
   get emailsRange() { return lodash.range(0, this.form.emails.length); }
+
+  clearState() {
+    this.service.clearStatesAndLocalStorage();
+  }
 
   private form: FormData;
   private _$formReplay: FormData;
