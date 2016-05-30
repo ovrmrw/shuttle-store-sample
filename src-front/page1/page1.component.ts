@@ -11,6 +11,7 @@ import { Page1Service, Page1State } from './page1.service';
     <h2>{{title}} - PAGE1</h2>
     <hr />
     <div>ここで入力したタイトルは全てのページで使われます。</div>
+    <div>Colorはどんどんリストに追加されていきますが、30秒経過すると次のStore更新時に消えるようになっています。</div>
     <hr />
     <h3>Settings</h3>
     <div>Title: <input type="text" [(ngModel)]="title" /></div>

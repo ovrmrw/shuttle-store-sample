@@ -10,7 +10,7 @@ export class Page1Service extends AppService {
   constructor(store: Store) { super(store); }
 
   putTitle(data: string) { return this.store.put(data, S._TITLE_, { rollback: true }); }
-  putColor(data: string) { return this.store.put(data, S._COLOR_, { limit: 20, rollback: true }); }
+  putColor(data: string) { return this.store.put(data, S._COLOR_, { limit: 50, rollback: true, duration: 1000 * 30 }); }
 }
 
 const S = Page1Service; // shorthand

@@ -64,7 +64,7 @@ export class Store {
         console.timeEnd('IndexedDB(level-js)GetItem');
         const states: State[] = value ? JSON.parse(value) : this.states;
         this.states = states;
-        this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+        this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
 
         this.put(true, _NOTIFICATOR_, { limit: 1 }).log('Store is now on ready!'); // statesをロードしたらクライアントにPush通知する。
       });
@@ -91,7 +91,7 @@ export class Store {
       });
 
     // debounceTimeで頻度を抑えながらStorageにStateを保存する。
-    this._storageKeeper$      
+    this._storageKeeper$
       .debounceTime(300)
       .subscribe(states => {
         // try { // LevelDBにデータを保存する。
@@ -437,10 +437,14 @@ function gabageCollectorFastTuned(states: State[]): State[] {
     const limit = stateLast.rule && stateLast.rule.limit ? stateLast.rule.limit : DEFAULT_LIMIT;
     const filterId = stateLast.rule && stateLast.rule.filterId ? stateLast.rule.filterId : null;
 
-    // uniqueIdが指定されている場合、同じuniqueIdのものだけフィルタリングする。
+    // uniqueIdが指定されている場合、同じuniqueIdのものだけ抽出する。
     if (filterId) {
       objs = objs.filter(obj => obj.rule && obj.rule.filterId ? obj.rule.filterId === filterId : true);
     }
+
+    // durationが指定されている場合、durationを過ぎていないものだけ抽出する。
+    const now = lodash.now();
+    objs = objs.filter(obj => obj.rule && obj.rule.duration ? now - obj.timestamp < obj.rule.duration : true);
 
     if (objs.length > limit) {
       // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
@@ -539,17 +543,20 @@ class StateRule {
   limit: number;
   rollback: boolean;
   filterId: string | number;
+  duration: number;
   constructor(options: StateRuleOptions) {
-    const {limit, rollback, filterId} = options;
+    const {limit, rollback, filterId, duration} = options;
     this.limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
     this.rollback = rollback ? true : false;
     this.filterId = filterId ? filterId : null;
+    this.duration = duration ? duration : null;
   }
 }
 interface StateRuleOptions {
   limit?: number;
   rollback?: boolean;
   filterId?: string | number;
+  duration?: number;
 }
 
 ////////////////////////////////////////////////////////////////////////////
