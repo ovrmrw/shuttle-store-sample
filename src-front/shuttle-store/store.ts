@@ -12,11 +12,15 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import 'rxjs/add/observable/from';
 // import 'rxjs/add/operator/do';
 import lodash from 'lodash';
+const levelup = require('levelup'); // import levelup from 'levelup';
+const leveljs = require('level-js');
 
 type Nameable = Function | Object | string;
 type SnapShot = State[];
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
+const LEVELDB_NAME = 'ovrmrw-shuttle-store';
+const LEVELDB_KEY = 'ovrmrw-leveldb-store-indexeddb';
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
 export const NOTIFICATOR = 'push-notification-from-store-to-client';
@@ -38,19 +42,35 @@ export class Store {
   constructor(
     private http: Http
   ) {
-    try { // LevelDBからデータを取得する。
-      console.time('levelDbGetItem');
-      this.http.get('/leveldb')
-        .map(res => res.json() as string)
-        .map(json => (json ? JSON.parse(json) : this.states) as State[])
-        .do(states => {
+    // try { // LevelDBからデータを取得する。
+    //   console.time('levelDbGetItem');
+    //   this.http.get('/leveldb')
+    //     .map(res => res.json() as string)
+    //     .map(json => (json ? JSON.parse(json) : this.states) as State[])
+    //     .do(states => {
+    //       this.states = states;
+    //       this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+    //       this._dispatcher$.next(new State({ key: NOTIFICATOR, value: true, osn: this.osnLatest++, ruleOptions: new StateRule({ limit: 1 }) })); // statesをロードしたらクライアントにPush通知する。
+    //     })
+    //     .subscribe(() => console.timeEnd('levelDbGetItem'), err => console.log(err));
+    // } catch (err) {
+    //   console.log(err);
+    // }
+    try { // LevelDB(level-js)からデータを取得する。
+      console.time('leveljsGetItem');
+      levelup(LEVELDB_NAME, { db: leveljs }, (err, db) => {
+        if (err) { console.log(err); }
+        db.get(LEVELDB_KEY, (err, value) => {
+          if (err) { console.log(err); }
+          console.timeEnd('leveljsGetItem');
+          const states: State[] = value ? JSON.parse(value) : this.states;
           this.states = states;
           this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
           this._dispatcher$.next(new State({ key: NOTIFICATOR, value: true, osn: this.osnLatest++, ruleOptions: new StateRule({ limit: 1 }) })); // statesをロードしたらクライアントにPush通知する。
-        })
-        .subscribe(() => console.timeEnd('levelDbGetItem'), err => console.log(err));
+        });
+      });
     } catch (err) {
-      console.error(err);
+      console.log(err);
     }
 
     this._returner$ = new BehaviorSubject(this.states);
@@ -73,16 +93,32 @@ export class Store {
     this._storageKeeper$
       .debounceTime(250)
       .subscribe(states => {
-        try { // LevelDBにデータを保存する。
-          const headers = new Headers({ 'Content-Type': 'application/json' });
-          const body = JSON.stringify(states);
-          console.time('levelDbSetItem');
-          return this.http.post('/leveldb', body, { headers })
-            .map(res => res.json() as string)
-            .do(message => console.log(message))
-            .subscribe(() => console.timeEnd('levelDbSetItem'));
+        // try { // LevelDBにデータを保存する。
+        //   const headers = new Headers({ 'Content-Type': 'application/json' });
+        //   const body = JSON.stringify(states);
+        //   console.time('levelDbSetItem');
+        //   this.http.post('/leveldb', body, { headers })
+        //     .map(res => res.json() as string)
+        //     .do(message => console.log(message))
+        //     .subscribe(() => console.timeEnd('levelDbSetItem'));
+        // } catch (err) {
+        //   console.log(err);
+        // }
+        try { // LevelDB(level-js)にデータを保存する。
+          console.time('leveljsSetItem');
+          const ops = [
+            { type: 'del', key: LEVELDB_KEY },
+            { type: 'put', key: LEVELDB_KEY, value: JSON.stringify(states) }
+          ];
+          levelup(LEVELDB_NAME, { db: leveljs }, (err, db) => {
+            if (err) { console.log(err); }
+            db.batch(ops, err => {
+              if (err) { console.log(err); }
+              console.timeEnd('leveljsSetItem');
+            });
+          });
         } catch (err) {
-          console.error(err);
+          console.log(err);
         }
       });
   }
@@ -318,11 +354,11 @@ export class Store {
   }
 
   clearStatesAndStorage(): void {
-    try {
-      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-    } catch (err) {
-      console.error(err);
-    }
+    // try {
+    //   window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+    // } catch (err) {
+    //   console.error(err);
+    // }
     this.states = null; // メモリ解放。
     this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
     this._dispatcher$.next(null);
