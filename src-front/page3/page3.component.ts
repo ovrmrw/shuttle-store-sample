@@ -44,7 +44,7 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
           this.service.savePrimitiveValuesToLocalStorage(this, [this.service, this.state, this.cd]);
         }),
 
-      this.service.lazyConnection$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
+      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
     ];
   }
 

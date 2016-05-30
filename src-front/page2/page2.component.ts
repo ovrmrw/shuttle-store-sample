@@ -52,7 +52,7 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
   get title() { return this.state.title; }
 
   clearState() {
-    this.service.clearStatesAndLocalStorage();
+    this.service.clearStatesAndStorage();
   }
 
   // Observableにより更新される変数なので勝手に変更しないこと。;

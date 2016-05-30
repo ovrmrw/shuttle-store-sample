@@ -19,7 +19,7 @@ type SnapShot = State[];
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
-export const LAZY_CONNECTION = 'client-can-detect-connetion-to-store-lazily';
+export const NOTIFICATOR = 'push-notification-from-store-to-client';
 
 @Injectable()
 export class Store {
@@ -28,7 +28,7 @@ export class Store {
   private subscriptions: DisposableSubscription[] = [];
   private snapShots: SnapShot[] = [];
   private _dispatcher$: Subject<any> = new Subject<any>();
-  private _localStorageKeeper$: Subject<State[]> = new Subject<State[]>();
+  private _storageKeeper$: Subject<State[]> = new Subject<State[]>();
   private _returner$: BehaviorSubject<State[]>;
 
   // サスペンドで使う変数群。
@@ -38,30 +38,21 @@ export class Store {
   constructor(
     private http: Http
   ) {
-    // let objsFromLS: State[];
-    // try {
-    //   console.time('localStorageGetItem');
-    //   objsFromLS = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
-    //   console.timeEnd('localStorageGetItem');
-    // } catch (err) {
-    //   console.error(err);
-    // }
     try { // LevelDBからデータを取得する。
       console.time('levelDbGetItem');
       this.http.get('/leveldb')
         .map(res => res.json() as string)
-        .map(json => JSON.parse(json))
+        .map(json => (json ? JSON.parse(json) : this.states) as State[])
         .do(states => {
           this.states = states;
           this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
-          this._dispatcher$.next(new State({ key: LAZY_CONNECTION, value: true, osn: this.osnLatest++, ruleOptions: new StateRule({ limit: 1 }) })); // statesをロードしたらクライアントにPush通知する。
+          this._dispatcher$.next(new State({ key: NOTIFICATOR, value: true, osn: this.osnLatest++, ruleOptions: new StateRule({ limit: 1 }) })); // statesをロードしたらクライアントにPush通知する。
         })
-        .subscribe(() => console.timeEnd('levelDbGetItem'), err => console.error(err));
+        .subscribe(() => console.timeEnd('levelDbGetItem'), err => console.log(err));
     } catch (err) {
       console.error(err);
     }
-    // this.states = []; // objsFromLS || []; // this.statesにはnullやundefinedが入り込まないように気をつけなければならない。
-    // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+
     this._returner$ = new BehaviorSubject(this.states);
 
     this._dispatcher$
@@ -75,20 +66,13 @@ export class Store {
         // console.log('↓ states array on Store ↓');
         // console.log(this.states);
         this._returner$.next(this.states);
-        this._localStorageKeeper$.next(this.states);
+        this._storageKeeper$.next(this.states);
       });
 
     // debounceTimeで頻度を抑えながらLocalStorageに保存する。
-    this._localStorageKeeper$
+    this._storageKeeper$
       .debounceTime(250)
       .subscribe(states => {
-        // try {
-        //   console.time('localStorageSetItem');
-        //   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(states));
-        //   console.timeEnd('localStorageSetItem');
-        // } catch (err) {
-        //   console.error(err);
-        // }
         try { // LevelDBにデータを保存する。
           const headers = new Headers({ 'Content-Type': 'application/json' });
           const body = JSON.stringify(states);
@@ -333,7 +317,7 @@ export class Store {
     // console.log(this.subscriptions);
   }
 
-  clearStatesAndLocalStorage(): void {
+  clearStatesAndStorage(): void {
     try {
       window.localStorage.removeItem(LOCAL_STORAGE_KEY);
     } catch (err) {

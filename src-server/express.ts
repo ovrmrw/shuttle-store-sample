@@ -5,14 +5,15 @@ import bodyParser from 'body-parser';
 import levelup from 'levelup';
 import { appRoot } from './utils.ref';
 
-const LEVELDB_KEY = 'ovrmrw-leveldb-store';
+const LEVELDB_KEY = 'ovrmrw-leveldb-store-serverside';
+const LEVELDB_PATH = './leveldb';
 
 const app = express();
 app.set('views', appRoot + '/views');
 app.set('view engine', 'jade');
 app.use(express.static(appRoot)); // ExpressとElectronが両立する書き方。
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' })); // { limit: '50mb' }を書かないとリクエストサイズが大きいときにエラーになる。 
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // CORS on Express (http://enable-cors.org/server_expressjs.html)
@@ -33,49 +34,30 @@ app.get('/views', (req, res) => {
 
 // LevelDBからデータを取得してクライアントに返す。JSON文字列が返る。
 app.get('/leveldb', (req, res) => {
-  (async function () {
-    try {
-      const db = levelup('./leveldb');
-      const result = await new Promise((resolve, reject) => {
-        db.get(LEVELDB_KEY, (err, value) => {
-          resolve(value);
-        });
-      });
-      db.close();
-      res.json(result);
-    } catch (err) {
-      console.error(err);
-    }
-  })();
+  const db = levelup(LEVELDB_PATH);
+  db.get(LEVELDB_KEY, (err, value) => {
+    if (err) { res.json(null); }
+    res.json(value);
+    db.close(); // どのタイミングでcloseすればいいのかイマイチわからない。
+  });
+  // db.close();
 });
 
 // クライアントから送られてきたbodyのデータを回収してLevelDBにJSON文字列として保存する。
 app.post('/leveldb', (req, res) => {
   const states = JSON.stringify(req.body) as string;
-  // console.log(states);
   if (states) {
-    (async function () {
-      try {
-        const db = levelup('./leveldb');
-        const ops = [
-          { type: 'del', key: LEVELDB_KEY },
-          { type: 'put', key: LEVELDB_KEY, value: states }
-        ];
-        const result = await new Promise((resolve, reject) => {
-          // db.put(LEVELDB_KEY, states, (err) => {
-          //   resolve('LevelDB put proccess is done.');
-          // });
-          db.batch(ops, (err) => {
-            resolve('LevelDB put proccess is done.');
-          });
-        });
-        db.close();
-        res.json(result);
-      } catch (err) {
-        console.error(err);
-        res.json(err);
-      }
-    })();
+    const ops = [
+      { type: 'del', key: LEVELDB_KEY },
+      { type: 'put', key: LEVELDB_KEY, value: states }
+    ];
+    const db = levelup(LEVELDB_PATH);
+    db.batch(ops, (err) => {
+      if (err) { res.json(err); }
+      res.json('LevelDB batch proccess is done.');
+      db.close(); // どのタイミングでcloseすればいいのかイマイチわからない。
+    });
+    // db.close();
   }
 });
 
@@ -88,17 +70,17 @@ export {host, port}
 
 //////////////////////////////////////////////////////////////////////
 // LevelDBを初期化する。これをしておかないとdb.get()でエラーになる。
-levelup('./leveldb', (err, db) => {
-  db.get(LEVELDB_KEY, (err, value) => {
-    if (err && err.notFound) {
-      db.put(LEVELDB_KEY, JSON.stringify([]), (err) => {
-        db.get(LEVELDB_KEY, (err, value) => {
-          console.log('LevelDB Data: ' + value);
-          db.close();
-        });
-      });
-    }
-    console.log('LevelDB Data: ' + value);
-    db.close();
-  });
-});
+// levelup('./leveldb', (err, db) => {
+//   db.get(LEVELDB_KEY, (err, value) => {
+//     if (err && err.notFound) {
+//       db.put(LEVELDB_KEY, JSON.stringify([]), (err) => {
+//         db.get(LEVELDB_KEY, (err, value) => {
+//           console.log('LevelDB Data: ' + value);
+//           db.close();
+//         });
+//       });
+//     }
+//     console.log('LevelDB Data: ' + value);
+//     db.close();
+//   });
+// });

@@ -37,7 +37,7 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
 
   registerSubscriptionsEveryActivate() {
     this.service.disposableSubscriptions = [
-      this.service.lazyConnection$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
+      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
     ]
   }
 
@@ -53,7 +53,7 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   get title() { return this.state.title; }
 
   clearState() {
-    this.service.clearStatesAndLocalStorage();
+    this.service.clearStatesAndStorage();
   }
 
   private keyword: string;

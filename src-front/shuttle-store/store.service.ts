@@ -1,5 +1,5 @@
 import { Subscription } from 'rxjs/Subscription';
-import { Store, LAZY_CONNECTION } from './store';
+import { Store, NOTIFICATOR } from './store';
 import lodash from 'lodash';
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
@@ -10,7 +10,7 @@ export abstract class StoreService {
     protected store: Store
   ) { }
 
-  get lazyConnection$$() { return this.store.takeLatest$([LAZY_CONNECTION]); }
+  get storeNotificator$$() { return this.store.takeLatest$([NOTIFICATOR]); }
 
   set disposableSubscription(subscription: Subscription) {
     this.store.setDisposableSubscription(subscription, [this]);
@@ -25,8 +25,8 @@ export abstract class StoreService {
     this.store.disposeSubscriptions([this]);
   }
 
-  clearStatesAndLocalStorage() {
-    this.store.clearStatesAndLocalStorage();
+  clearStatesAndStorage() {
+    this.store.clearStatesAndStorage();
   }
 
 

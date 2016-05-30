@@ -99,7 +99,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   get emailsRange() { return lodash.range(0, this.form.emails.length); }
 
   clearState() {
-    this.service.clearStatesAndLocalStorage();
+    this.service.clearStatesAndStorage();
   }
 
   private form: FormData;

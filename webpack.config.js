@@ -18,6 +18,10 @@ module.exports = [
           test: /\.ts$/,
           exclude: [/node_modules/],
           loader: 'babel-loader!ts-loader' // first ts-loader(with tsconfig.json), second babel-loader        
+        },
+        {
+          test: /\.json$/,
+          loader: "json-loader"
         }
       ]
     },
