@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Http, Headers } from '@angular/http';
+// import { Http, Headers } from '@angular/http';
 import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import { Observable } from 'rxjs/Observable';
 // import { Subject } from 'rxjs/Subject';
@@ -12,7 +12,7 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import 'rxjs/add/observable/from';
 // import 'rxjs/add/operator/do';
 import lodash from 'lodash';
-const levelup = require('levelup'); // import levelup from 'levelup';
+import levelup from 'levelup';
 const leveljs = require('level-js');
 
 type Nameable = Function | Object | string;
@@ -23,7 +23,7 @@ const LEVELDB_NAME = 'ovrmrw-shuttle-store';
 const LEVELDB_KEY = 'ovrmrw-leveldb-store-indexeddb';
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
-export const NOTIFICATOR = 'push-notification-from-store-to-client';
+export const _NOTIFICATOR_ = ['push-notification-from-store-to-client'];
 
 @Injectable()
 export class Store {
@@ -40,7 +40,7 @@ export class Store {
   private tempStates: State[] = [];
 
   constructor(
-    private http: Http
+    // private http: Http
   ) {
     // try { // LevelDBからデータを取得する。
     //   console.time('levelDbGetItem');
@@ -56,25 +56,26 @@ export class Store {
     // } catch (err) {
     //   console.log(err);
     // }
-    try { // LevelDB(level-js)からデータを取得する。
-      console.time('leveljsGetItem');
-      levelup(LEVELDB_NAME, { db: leveljs }, (err, db) => {
+    try { // IndexedDB(level-js)からデータを取得する。
+      console.time('IndexedDB(level-js)GetItem');
+      const db = levelup(LEVELDB_NAME, { db: leveljs });
+      db.get(LEVELDB_KEY, (err, value) => {
         if (err) { console.log(err); }
-        db.get(LEVELDB_KEY, (err, value) => {
-          if (err) { console.log(err); }
-          console.timeEnd('leveljsGetItem');
-          const states: State[] = value ? JSON.parse(value) : this.states;
-          this.states = states;
-          this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
-          this._dispatcher$.next(new State({ key: NOTIFICATOR, value: true, osn: this.osnLatest++, ruleOptions: new StateRule({ limit: 1 }) })); // statesをロードしたらクライアントにPush通知する。
-        });
+        console.timeEnd('IndexedDB(level-js)GetItem');
+        const states: State[] = value ? JSON.parse(value) : this.states;
+        this.states = states;
+        this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 0;
+
+        this.put(true, _NOTIFICATOR_, { limit: 1 }).log('Store is now on ready!'); // statesをロードしたらクライアントにPush通知する。
       });
     } catch (err) {
       console.log(err);
     }
 
+    // ComponentはこのSubjectのストリームを受けることでViewを動的に更新する。
     this._returner$ = new BehaviorSubject(this.states);
 
+    // 主にput関数から呼ばれ、新しいStateをStoreに追加しつつComponentにPush通知する。
     this._dispatcher$
       .subscribe(newState => {
         if (newState instanceof State) { // nullがthis.statesにpushされないように制御する。
@@ -89,9 +90,9 @@ export class Store {
         this._storageKeeper$.next(this.states);
       });
 
-    // debounceTimeで頻度を抑えながらLocalStorageに保存する。
-    this._storageKeeper$
-      .debounceTime(250)
+    // debounceTimeで頻度を抑えながらStorageにStateを保存する。
+    this._storageKeeper$      
+      .debounceTime(300)
       .subscribe(states => {
         // try { // LevelDBにデータを保存する。
         //   const headers = new Headers({ 'Content-Type': 'application/json' });
@@ -104,18 +105,16 @@ export class Store {
         // } catch (err) {
         //   console.log(err);
         // }
-        try { // LevelDB(level-js)にデータを保存する。
-          console.time('leveljsSetItem');
+        try { // IndexedDB(level-js)にデータを保存する。
+          console.time('IndexedDB(level-js)SetItem');
           const ops = [
             { type: 'del', key: LEVELDB_KEY },
             { type: 'put', key: LEVELDB_KEY, value: JSON.stringify(states) }
           ];
-          levelup(LEVELDB_NAME, { db: leveljs }, (err, db) => {
+          const db = levelup(LEVELDB_NAME, { db: leveljs });
+          db.batch(ops, err => {
             if (err) { console.log(err); }
-            db.batch(ops, err => {
-              if (err) { console.log(err); }
-              console.timeEnd('leveljsSetItem');
-            });
+            console.timeEnd('IndexedDB(level-js)SetItem');
           });
         } catch (err) {
           console.log(err);
@@ -542,11 +541,6 @@ class StateRule {
   filterId: string | number;
   constructor(options: StateRuleOptions) {
     const {limit, rollback, filterId} = options;
-    // if (o && o.limit && o.limit > 0) {
-    //   this.limit = o.limit;
-    // } else {
-    //   this.limit = DEFAULT_LIMIT;
-    // }
     this.limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
     this.rollback = rollback ? true : false;
     this.filterId = filterId ? filterId : null;

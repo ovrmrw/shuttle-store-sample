@@ -25,5 +25,5 @@ export class Page1State {
   get titles$() { return this.store.takeMany$<string>(S._TITLE_); }
   get titleReplayStream$$() { return this.store.takePresetReplayStream$<string>(S._TITLE_, { interval: 25 }); }
 
-  get colorsReplayStream$$() { return this.store.takePresetReplayArrayStream$<string>(S._COLOR_, { interval: 100, descending: true }); }
+  get colorsReplayStream$$() { return this.store.takePresetReplayArrayStream$<string>(S._COLOR_, { interval: 100 }); }
 }

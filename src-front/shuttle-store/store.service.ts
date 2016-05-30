@@ -1,5 +1,5 @@
 import { Subscription } from 'rxjs/Subscription';
-import { Store, NOTIFICATOR } from './store';
+import { Store, _NOTIFICATOR_ } from './store';
 import lodash from 'lodash';
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
@@ -10,7 +10,8 @@ export abstract class StoreService {
     protected store: Store
   ) { }
 
-  get storeNotificator$$() { return this.store.takeLatest$([NOTIFICATOR]); }
+  // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。
+  get storeNotificator$$() { return this.store.takeLatest$(_NOTIFICATOR_); }
 
   set disposableSubscription(subscription: Subscription) {
     this.store.setDisposableSubscription(subscription, [this]);
