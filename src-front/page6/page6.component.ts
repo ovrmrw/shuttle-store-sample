@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
-import lodash from 'lodash';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page6Service, Page6State } from './page6.service';

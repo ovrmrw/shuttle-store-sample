@@ -5,11 +5,13 @@ Angular2 + Store Integration
 
 A simple Store integration on Angular2 DI. This Store shares "data(states)" and "data(states)-history" between routing pages.
 
-You can get data(states) from Store as non-Observable values, Observables or Stream Observables. 
+You can get data(states) from Store as non-Observable values, Observables or "Observables with time flow". 
 
 Due to Store's Push behavior, it allows Angular2 OnPush-ChangeDetection-Strategy that makes your apps very fast.
 
-Store now has Undo/Redo feature, it allows you to undo all of your operations. 
+Store now has Undo/Redo feature, it allows you to undo all of your operations.
+
+States on Store will be saved to IndexedDB(powered by LevelDB) to prevent to be lost your data. 
 
 ---
 

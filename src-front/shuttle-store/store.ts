@@ -18,7 +18,7 @@ const leveljs = require('level-js');
 type Nameable = Function | Object | string;
 type SnapShot = State[];
 
-const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
+// const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
 const LEVELDB_KEY = 'ovrmrw-leveldb-store-indexeddb';
 const DEFAULT_LIMIT = 1000;
@@ -195,7 +195,7 @@ export class Store {
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
-    if (!this.osnLatest) { return new Logger('Error: States on Store is not loaded yet.'); }
+    if (!this.osnLatest) { return new Logger('Error: States on Store are not loaded yet.'); }
     const identifier = generateIdentifier(nameablesAsIdentifier);
     const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest++, ruleOptions: ruleOptions });
 
