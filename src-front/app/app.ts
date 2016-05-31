@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, bind, OpaqueToken } from '@angular/core';
 import { Route, RouteConfig, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import { Page1Component } from '../page1/page1.component';
 import { Page2Component } from '../page2/page2.component';
@@ -7,7 +7,7 @@ import { Page4Component } from '../page4/page4.component';
 import { Page5Component } from '../page5/page5.component';
 import { Page6Component } from '../page6/page6.component';
 import { Page7Component } from '../page7/page7.component';
-import { Store } from '../shuttle-store';
+import { Store, StoreKeyToken } from '../shuttle-store';
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Top Component
@@ -28,7 +28,10 @@ import { Store } from '../shuttle-store';
     <router-outlet></router-outlet>
   `,
   directives: [ROUTER_DIRECTIVES],
-  providers: [Store],
+  providers: [
+    bind(StoreKeyToken).toValue(AppComponent.name),
+    bind(Store).toFactory((key) => new Store(key), [StoreKeyToken])
+  ],
   changeDetection: ChangeDetectionStrategy.Default
 })
 @RouteConfig([

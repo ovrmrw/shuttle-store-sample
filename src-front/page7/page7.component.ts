@@ -15,7 +15,7 @@ import { Page7Service, Page7State } from './page7.service';
     <hr />
     <div>Page5のフォームをControl,ControlArray,ControlGroup,Validatorsを使って書き直したものです。</div>
     <div>動的に入力欄の数を変更させる場合ControlArray周りがややこしくなります。</div>
-    <div>バリデーションとデータ永続化を組み合わせた例です。</div>    
+    <div>Storeを使ったデータ永続化を組み合わせているのでリロードしても入力値は失われません。</div>    
     <hr />
     <form [ngFormModel]="formGroup">
       <div ngControlGroup="person">
@@ -38,6 +38,7 @@ import { Page7Service, Page7State } from './page7.service';
         <div *ngFor="let i of emailsRange">Email{{i + 1}}: <input type="text" ngControl="{{i}}" [(ngModel)]="form.emails[i]" /><span *ngIf="!ctrl.emails[i].valid">[invalid!]</span></div>
       </div>
     </form>
+    <h4>Validation: {{formGroup.valid}}</h4>
     <div><button (click)="clearForm()">Clear Form</button></div>
     <div><button (click)="rollback()">UNDO (Rollback)</button></div>
     <div><button (click)="revertRollback()">REDO (Revert Rollback)</button></div>
@@ -68,7 +69,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)
-        .do(() => this.service.putForm(this.form).log('Form'))
+        .do(() => this.service.putForm(this.form).then(x => x.log('Form')))
         .subscribe(),
 
       // StoreからフォームのStateを受け取る。nullを受け取ったときはnew FormData()する。
@@ -100,7 +101,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   clearForm() {
-    this.service.putForm(new FormData()).log('Initialize Form');
+    this.service.putForm(new FormData()).then(x => x.log('Initialize Form'));
   }
 
   rollback() {

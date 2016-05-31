@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OpaqueToken } from '@angular/core';
 // import { Http, Headers } from '@angular/http';
 import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 // import { Observable } from 'rxjs/Observable';
@@ -15,15 +15,21 @@ import lodash from 'lodash';
 import levelup from 'levelup';
 const leveljs = require('level-js');
 
+export const StoreKeyToken = new OpaqueToken('StoreLevelDbKey');
+
 type Nameable = Function | Object | string;
 type SnapShot = State[];
 
 // const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
 const LEVELDB_KEY = 'states';
+let leveldbStatesKey: string;
+let leveldbOsnKey: string;
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
-export const _NOTIFICATOR_ = ['push-notification-from-store-to-client'];
+export const _NOTIFICATION_ = ['push-notification-from-store-to-client'];
+
+let previousAutoRunOsn: string;
 
 @Injectable()
 export class Store {
@@ -34,14 +40,18 @@ export class Store {
   private _dispatcher$: Subject<any> = new Subject<any>();
   private _storageKeeper$: Subject<State[]> = new Subject<State[]>();
   private _returner$: BehaviorSubject<State[]>;
+  private isReady: boolean = false;
 
   // サスペンドで使う変数群。
   private isSuspending: boolean = false;
   private tempStates: State[] = [];
 
   constructor(
+    storeKey?: string
     // private http: Http
   ) {
+    leveldbStatesKey = storeKey ? LEVELDB_KEY + '-' + storeKey : LEVELDB_KEY;
+    leveldbOsnKey = storeKey ? leveldbStatesKey + '-osn' : LEVELDB_KEY + '-osn';
     // try { // LevelDBからデータを取得する。
     //   console.time('levelDbGetItem');
     //   this.http.get('/leveldb')
@@ -59,14 +69,15 @@ export class Store {
     try { // IndexedDB(level-js)からデータを取得する。
       console.time('IndexedDB(level-js)GetItem');
       const db = levelup(LEVELDB_NAME, { db: leveljs });
-      db.get(LEVELDB_KEY, (err, value) => {
+      db.get(leveldbStatesKey, (err, value) => {
         if (err) { console.log(err); }
         console.timeEnd('IndexedDB(level-js)GetItem');
         const states: State[] = value ? JSON.parse(value) : this.states;
         this.states = states;
-        this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
+        // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
+        this.isReady = true;
 
-        this.put('ready', _NOTIFICATOR_, { limit: 1 }).log('Store is now on ready!'); // statesをロードしたらクライアントにPush通知する。
+        this.put('ready', _NOTIFICATION_, { limit: 1 }).then(x => x.log('Store is now on ready!')); // statesをロードしたらクライアントにPush通知する。
       });
     } catch (err) {
       console.log(err);
@@ -108,8 +119,8 @@ export class Store {
         try { // IndexedDB(level-js)にデータを保存する。
           console.time('IndexedDB(level-js)SetItem');
           const ops = [
-            { type: 'del', key: LEVELDB_KEY },
-            { type: 'put', key: LEVELDB_KEY, value: JSON.stringify(states) }
+            { type: 'del', key: leveldbStatesKey },
+            { type: 'put', key: leveldbStatesKey, value: JSON.stringify(states) }
           ];
           const db = levelup(LEVELDB_NAME, { db: leveljs });
           db.batch(ops, err => {
@@ -193,17 +204,32 @@ export class Store {
 
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
-  put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Logger {
-    if (!this.osnLatest) { return new Logger('Error: States on Store are not loaded yet.'); }
-    const identifier = generateIdentifier(nameablesAsIdentifier);
-    const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest++, ruleOptions: ruleOptions });
+  put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Promise<Logger> {
+    console.time('put(setState)');
+    if (!this.isReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.')); }
+    return new Promise(resolve => {
+      const db = levelup(LEVELDB_NAME, { db: leveljs });
+      db.get(leveldbOsnKey, (err, value) => {
+        if (err) { console.log(err); }
 
-    if (!this.isSuspending) {
-      this._dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
-    } else { // サスペンドモードのとき。
-      this.tempStates.push(state);
-    }
-    return new Logger(state);
+        this.osnLatest = lodash.max([this.osnLatest, Number(value), 0]) + 1;
+        db.put(leveldbOsnKey, this.osnLatest, (err) => {
+          if (err) { console.log(err); }
+        });
+        console.log('osnLatest: ' + this.osnLatest);
+        const identifier = generateIdentifier(nameablesAsIdentifier);
+        const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
+
+        if (!this.isSuspending) {
+          this._dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+        } else { // サスペンドモードのとき。
+          this.tempStates.push(state);
+        }
+        resolve(new Logger(state));
+        console.timeEnd('put(setState)');
+      });
+    });
+
   }
   setState = this.put;
 

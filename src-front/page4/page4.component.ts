@@ -96,7 +96,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
                 filterId: this.filterId,
                 diff: keyCode === 65 /* keyA */ ? 0 : now - previousTime
               };
-              this.service.putKeyInput(keyInput).log('KeyInput'); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
+              this.service.putKeyInput(keyInput).then(x => x.log('KeyInput')); // serviceを経由してStoreに値を送り、戻り値として得たStateをコンソールに出力する。
               previousTime = now;
               previousKeyCode = keyCode;
             }

@@ -59,7 +59,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)
-        .do(() => this.service.putForm(this.form).log('Form'))
+        .do(() => this.service.putForm(this.form).then(x => x.log('Form')))
         .subscribe(),
 
       // StoreからフォームのStateを受け取る。nullを受け取ったときはnew FormData()する。
@@ -83,7 +83,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   clearForm() {
-    this.service.putForm(new FormData()).log('Initialize Form');
+    this.service.putForm(new FormData()).then(x => x.log('Initialize Form'));
   }
 
   rollback() {

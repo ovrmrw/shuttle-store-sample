@@ -54,13 +54,13 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  set title(data: string) { this.service.putTitle(data).log('Title'); }
+  set title(data: string) { this.service.putTitle(data).then(x => x.log('Title')); }
   get title() { return this.state.title; }
 
   color: string;
 
   setColor() {
-    this.service.putColor(this.color).log('Color');
+    this.service.putColor(this.color).then(x => x.log('Color'));
     this.color = '';
   }
 
