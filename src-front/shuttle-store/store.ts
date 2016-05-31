@@ -92,7 +92,7 @@ export class Store {
 
     // debounceTimeで頻度を抑えながらStorageにStateを保存する。
     this._storageKeeper$
-      .debounceTime(300)
+      .debounceTime(250)
       .subscribe(states => {
         // try { // LevelDBにデータを保存する。
         //   const headers = new Headers({ 'Content-Type': 'application/json' });

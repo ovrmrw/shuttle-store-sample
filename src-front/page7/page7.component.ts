@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, ElementRef } from '@angular/core';
 import { Control, ControlArray, ControlGroup, Validators } from '@angular/common';
 import { Observable } from 'rxjs/Rx';
 import lodash from 'lodash';
@@ -13,14 +13,15 @@ import { Page7Service, Page7State } from './page7.service';
   template: `
     <h2>{{title}} - PAGE7</h2>
     <hr />
-    <div>Page5のフォームをControl,ControlGroup,Validatorsを使って書き直したものです。</div>
+    <div>Page5のフォームをControl,ControlArray,ControlGroup,Validatorsを使って書き直したものです。</div>
+    <div>動的に入力欄の数を変更させる場合ControlArray周りがややこしくなります。</div>
     <div>バリデーションとデータ永続化を組み合わせた例です。</div>    
     <hr />
     <form [ngFormModel]="formGroup">
       <div ngControlGroup="person">
         <div ngControlGroup="name">
-          <div>First: <input type="text" ngControl="first" [(ngModel)]="form.firstName" /><span *ngIf="!ctrl.firstName.valid">[invalid!]</span></div>
-          <div>Last: <input type="text" ngControl="last" [(ngModel)]="form.lastName" /><span *ngIf="!ctrl.lastName.valid">[invalid!]</span></div>
+          <div>FirstName: <input type="text" ngControl="first" [(ngModel)]="form.firstName" /><span *ngIf="!ctrl.firstName.valid">[invalid!]</span></div>
+          <div>LastName: <input type="text" ngControl="last" [(ngModel)]="form.lastName" /><span *ngIf="!ctrl.lastName.valid">[invalid!]</span></div>
         </div>
         <div>Age: <input type="text" ngControl="age" [(ngModel)]="form.age" /><span *ngIf="!ctrl.age.valid">[invalid!]</span></div>
         <div>Gender: <input type="text" ngControl="gender" [(ngModel)]="form.gender" /><span *ngIf="!ctrl.gender.valid">[invalid!]</span></div>
@@ -34,7 +35,7 @@ import { Page7Service, Page7State } from './page7.service';
         <div>Fax: <input type="text" ngControl="fax" [(ngModel)]="form.fax" /><span *ngIf="!ctrl.fax.valid">[invalid!]</span></div>
       </div>
       <div ngControlGroup="emails">
-        <div *ngFor="let i of emailsRange">Email{{i + 1}}: <input type="text" ngControl="{{i}}" [(ngModel)]="form.emails[i]" /></div>
+        <div *ngFor="let i of emailsRange">Email{{i + 1}}: <input type="text" ngControl="{{i}}" [(ngModel)]="form.emails[i]" /><span *ngIf="!ctrl.emails[i].valid">[invalid!]</span></div>
       </div>
     </form>
     <div><button (click)="clearForm()">Clear Form</button></div>
@@ -53,7 +54,8 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   constructor(
     private service: Page7Service,
     private state: Page7State,
-    private cd: ChangeDetectorRef
+    private cd: ChangeDetectorRef,
+    private el: ElementRef
   ) { }
   ngOnInit() {
     this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
@@ -64,10 +66,9 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
-      this.formGroup.valueChanges
+      Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)
         .do(() => this.service.putForm(this.form).log('Form'))
-        .do(group => this._$formJson = JSON.stringify(group, null, 2))
         .subscribe(),
 
       // StoreからフォームのStateを受け取る。nullを受け取ったときはnew FormData()する。
@@ -80,7 +81,8 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
 
             if (form.emails.length > this.ctrl.emails.length) {
               lodash.range(0, form.emails.length - this.ctrl.emails.length).forEach(() => {
-                this.ctrl.emails.push(new Control('', Validators.minLength(5)));
+                // this.ctrl.emails.push(new Control('', Validators.minLength(5)));
+                this.emailsCtrlArray.push(new Control('', Validators.minLength(5)));
               });
             }
           }
@@ -88,6 +90,12 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
         })
         .do(form => this.form = form)
         .subscribe(() => this.cd.markForCheck()), // 要らなそうで要る。
+
+      // formGroupの値が変わる度にViewの表示を更新する。
+      this.formGroup.valueChanges
+        .debounceTime(100)
+        .do(group => this._$formJson = JSON.stringify(group, null, 2))
+        .subscribe(() => this.cd.markForCheck()),
     ];
   }
 
@@ -115,7 +123,8 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   private _$formJson: string;
 
   private ctrl: FormControl = new FormControl();
-  formGroup = new ControlGroup({ // 最終的にこの形でデータを取得することができる。
+  private emailsCtrlArray = new ControlArray(this.ctrl.emails);
+  private formGroup = new ControlGroup({ // 最終的にこの形でデータを取得することができる。
     person: new ControlGroup({
       name: new ControlGroup({
         first: this.ctrl.firstName,
@@ -132,7 +141,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
       tel: this.ctrl.tel,
       fax: this.ctrl.fax,
     }),
-    emails: this.ctrl.emails,
+    emails: this.emailsCtrlArray,
   });
 }
 
@@ -143,47 +152,47 @@ export class FormData implements FormControlable {
   firstName: string;
   lastName: string;
   age: number;
-  address: AddressData;
+  address: AddressData = new AddressData();
   tel: string;
   fax: string;
   gender: string;
   emails: string[] = [''];
-  constructor() { this.address = new AddressData(); }
 }
-class AddressData implements AddressControlable {
+class AddressData {
   zipCode: string;
   street: string;
 }
 
-
-class FormControl /*implements FormControlable*/ {
+///////////////////////////////////////////////////////////////////////////////////
+// FormControl Class
+class FormControl implements FormControlable {
   firstName = new Control('', Validators.required);
   lastName = new Control('', Validators.required);
   age = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9]+')]));
   gender = new Control('', Validators.required);
   tel = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9\-]+')]));
   fax = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9\-]+')]));
-  emails = new ControlArray([new Control('', Validators.minLength(5))]);
-  address: AddressControl;
-  constructor() { this.address = new AddressControl(); }
+  emails = [new Control('', Validators.minLength(5))];
+  address = new AddressControl();
 }
-class AddressControl implements AddressControlable {
+class AddressControl {
   zipCode = new Control('', Validators.required);
   street = new Control('', Validators.required);
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
+// Interfaces
 interface FormControlable {
   firstName: string | Control;
   lastName: string | Control;
   age: number | Control;
-  address: AddressControlable;
+  address: {
+    zipCode: string | Control;
+    street: string | Control;
+  };
   tel: string | Control;
   fax: string | Control;
   gender: string | Control;
-  emails: string[] | ControlArray;
-}
-interface AddressControlable {
-  zipCode: string | Control;
-  street: string | Control;
+  emails: string[] | Control[];
 }
