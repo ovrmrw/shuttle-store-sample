@@ -24,6 +24,8 @@ Page5 is a sample of a bit of complex form. The Component source-code is very si
 Page6 is a sample for HTTP requests. A data you've got once will be cached on Store, so if you request the same data next time,
 Store will return the cached data for avoiding unnecessary HTTP requests.
 
+Page7 is a sample extended Page5. It's a form with validations.
+
 ---
 
 ### Setup

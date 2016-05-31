@@ -34,7 +34,7 @@ import { Page5Service, Page5State } from './page5.service';
     <div><button (click)="revertRollback()">REDO (Revert Rollback)</button></div>
     <hr />
     <h3>Replay</h3>
-    <div>{{_$formReplay | json}}</div>
+    <div><pre>{{_$formReplay}}</pre></div>
     <hr />
     <div><button (click)="clearState()">Clear State</button></div>
   `,
@@ -77,7 +77,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
 
       // 入力した履歴をリプレイ。特に意味はない。
       this.state.formReplayStream$$
-        .do(form => this._$formReplay = form)
+        .do(form => this._$formReplay = JSON.stringify(form))
         .subscribe(() => this.cd.markForCheck()),
     ];
   }
@@ -103,7 +103,7 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   private form: FormData;
-  private _$formReplay: FormData;
+  private _$formReplay: FormData | string;
 }
 
 

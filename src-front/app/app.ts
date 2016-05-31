@@ -6,8 +6,8 @@ import { Page3Component } from '../page3/page3.component';
 import { Page4Component } from '../page4/page4.component';
 import { Page5Component } from '../page5/page5.component';
 import { Page6Component } from '../page6/page6.component';
+import { Page7Component } from '../page7/page7.component';
 import { Store } from '../shuttle-store';
-
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Top Component
@@ -22,6 +22,7 @@ import { Store } from '../shuttle-store';
         <li><a [routerLink]="['/Page4']">Page4</a></li>
         <li><a [routerLink]="['/Page5']">Page5</a></li>
         <li><a [routerLink]="['/Page6']">Page6</a></li>
+        <li><a [routerLink]="['/Page7']">Page7</a></li>
       </ul>
     </nav>
     <router-outlet></router-outlet>
@@ -37,5 +38,6 @@ import { Store } from '../shuttle-store';
   new Route({ path: 'p4', component: Page4Component, name: 'Page4' }),
   new Route({ path: 'p5', component: Page5Component, name: 'Page5' }),
   new Route({ path: 'p6', component: Page6Component, name: 'Page6' }),
+  new Route({ path: 'p7', component: Page7Component, name: 'Page7' }),
 ])
 export class AppComponent { }

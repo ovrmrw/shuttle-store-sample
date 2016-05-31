@@ -20,7 +20,7 @@ type SnapShot = State[];
 
 // const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
-const LEVELDB_KEY = 'ovrmrw-leveldb-store-indexeddb';
+const LEVELDB_KEY = 'states';
 const DEFAULT_LIMIT = 1000;
 const DEFAULT_INTERVAL = 10;
 export const _NOTIFICATOR_ = ['push-notification-from-store-to-client'];
@@ -66,7 +66,7 @@ export class Store {
         this.states = states;
         this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
 
-        this.put(true, _NOTIFICATOR_, { limit: 1 }).log('Store is now on ready!'); // statesをロードしたらクライアントにPush通知する。
+        this.put('ready', _NOTIFICATOR_, { limit: 1 }).log('Store is now on ready!'); // statesをロードしたらクライアントにPush通知する。
       });
     } catch (err) {
       console.log(err);
