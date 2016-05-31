@@ -123,7 +123,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   private _$formJson: string;
 
   private ctrl: FormControl = new FormControl();
-  private emailsCtrlArray = new ControlArray(this.ctrl.emails);
+  private emailsCtrlArray = new ControlArray(this.ctrl.emails); // formGroupの外に定義していないと動的に入力欄の数を変更できない。
   private formGroup = new ControlGroup({ // 最終的にこの形でデータを取得することができる。
     person: new ControlGroup({
       name: new ControlGroup({
@@ -141,7 +141,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
       tel: this.ctrl.tel,
       fax: this.ctrl.fax,
     }),
-    emails: this.emailsCtrlArray,
+    emails: this.emailsCtrlArray, // ここはControlArrayでなければならない。Controlの配列ではNG。
   });
 }
 
@@ -172,7 +172,7 @@ class FormControl implements FormControlable {
   gender = new Control('', Validators.required);
   tel = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9\-]+')]));
   fax = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9\-]+')]));
-  emails = [new Control('', Validators.minLength(5))];
+  emails = [new Control('', Validators.minLength(5))]; // ここはControlの配列でなければならない。ControlArrayはNG。
   address = new AddressControl();
 }
 class AddressControl {
