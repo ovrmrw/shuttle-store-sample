@@ -1,9 +1,9 @@
-import { Store, StoreService } from '../shuttle-store';
+import { Store, AbstractStoreService } from '../shuttle-store';
 
 ////////////////////////////////////////////////////////////////////////////
 // Parent App Service which extends StoreService
 // Mainly, keys of stored values are defined here. 
-export abstract class AppService extends StoreService {
+export abstract class AppService extends AbstractStoreService {
   static _TITLE_ = ['app-title'];
   static _COLOR_ = ['color'];
 

@@ -1,3 +1,4 @@
-export { Store, StoreKeyToken } from './store';
-export { StoreService } from './store.service';
+export { Store } from './store';
+export { AbstractStoreService } from './store.service';
+export { AbstractStoreState } from './store.state';
 export { ComponentGuidelineUsingStore } from './store.interface';

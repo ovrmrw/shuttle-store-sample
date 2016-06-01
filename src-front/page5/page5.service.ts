@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { Store } from '../shuttle-store';
+import { Store, AbstractStoreState } from '../shuttle-store';
 import { AppService } from '../services.ref';
 import { FormData } from './page5.component';
 
@@ -18,8 +18,8 @@ const S = Page5Service; // shorthand
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)
 @Injectable()
-export class Page5State {
-  constructor(private store: Store) { }
+export class Page5State extends AbstractStoreState {
+  constructor(store: Store) { super(store); }
 
   get title() { return this.store.takeLatest<string>(S._TITLE_); }
 

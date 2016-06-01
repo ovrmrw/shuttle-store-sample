@@ -1,14 +1,38 @@
 import { Subscription } from 'rxjs/Subscription';
-import { Store, _NOTIFICATION_ } from './store';
 import lodash from 'lodash';
+
+import { Store, _NOTIFICATION_ } from './store';
+import { AbstractStoreState, StoreMulti } from './store.state';
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
 const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
 
-export abstract class StoreService {
-  constructor(
-    protected store: Store
-  ) { }
+export abstract class AbstractStoreService extends AbstractStoreState {
+  // protected store: Store;
+  // private storesObject: { [key: string]: Store };
+
+  // constructor(
+  //   private stores: StoreMulti
+  // ) {
+  //   this.store = stores instanceof Array ? stores[0] : stores;
+
+  //   if (stores instanceof Array) {
+  //     const keys = stores.map(s => s.key);
+  //     this.storesObject = lodash.zipObject(keys, stores) as { [key: string]: Store };
+  //   } else {
+  //     this.storesObject = { [stores.key]: stores };
+  //   }
+  //   console.log(this.storesObject);
+  // }
+
+  // getStoreSafely(key: string) {
+  //   try {
+  //     return this.storesObject[key];
+  //   } catch (err) {
+  //     return this.store;
+  //   }
+  // }
+  constructor(stores: StoreMulti) { super(stores); }
 
   // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。
   get storeNotificator$$() { return this.store.takeLatest$(_NOTIFICATION_); }
