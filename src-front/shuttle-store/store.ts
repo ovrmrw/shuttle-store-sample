@@ -14,6 +14,7 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 import levelup from 'levelup';
 const leveljs = require('level-js');
+import toastr from 'toastr';
 
 type Nameable = Function | Object | string;
 type SnapShot = State[];
@@ -46,17 +47,21 @@ export class Store {
   private tempStates: State[] = [];
 
   private flagAutoRefresh: boolean = false;
+  private flagUseToastr: boolean = false;
 
   // クラス名だけでDIするとoptionsはundefinedで入ってくるので、その場合の処理も書いておく必要がある。
   constructor(options: {
     storeKey: string;
     autoRefresh?: boolean;
+    useToastr?: boolean;
   }) {
-    const {storeKey, autoRefresh} = options || { storeKey: '', autoRefresh: false };
+    const {storeKey, autoRefresh, useToastr} = options || { storeKey: '', autoRefresh: false, useToastr: false };
     this.storeKey = storeKey || '__default__';
     this.leveldbStatesKey = LEVELDB_KEY + '-' + this.storeKey;
     this.leveldbOsnKey = this.leveldbStatesKey + '-osn';
+
     this.flagAutoRefresh = autoRefresh ? true : false;
+    this.flagUseToastr = useToastr ? true : false;
     // try { // LevelDBからデータを取得する。
     //   console.time('levelDbGetItem');
     //   this.http.get('/leveldb')
@@ -81,8 +86,10 @@ export class Store {
         this.states = states;
         // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
         this.flagReady = true;
+        const message = 'Store is now on ready!';
+        toastrMix(message, this.flagUseToastr, toastr.success);
 
-        this.put('ready', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now on ready!')); // statesをロードしたらクライアントにPush通知する。
+        this.put('ready', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log(message)); // statesをロードしたらクライアントにPush通知する。
       });
     } catch (err) {
       console.log(err);
@@ -181,6 +188,7 @@ export class Store {
       }
       // this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
       console.log(this.snapShots);
+      toastrMix('Undo (rollback)', this.flagUseToastr, toastr.info);
     }
     if (!keepSuspend) {
       this.revertSuspend();
@@ -198,8 +206,10 @@ export class Store {
       this.states = states;
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
       console.log(this.snapShots);
+      toastrMix('Redo (revert rollback)', this.flagUseToastr, toastr.info);
     } else {
-      alert('No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n');
+      const message = 'No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n'
+      toastrMix(message, this.flagUseToastr, toastr.warning, alert);
     }
     if (!keepSuspend) {
       this.revertSuspend();
@@ -274,16 +284,20 @@ export class Store {
                 const states: State[] = value ? JSON.parse(value) : this.states;
                 this.states = states;
 
-                this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now refreshed!')); // refreshしたらクライアントにPush通知する。
+                const message = 'Store is now refreshed!';
+                this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
                 resolve(new Logger('refresh', this.storeKey));
                 console.timeEnd('refresh');
+                toastrMix(message, this.flagUseToastr, toastr.info);
               });
             } catch (err) {
               console.log(err);
               reject(new Logger(err, this.storeKey));
             }
           } else {
-            alert('(CAUTION) The states on this window are not latest! (storeKey: ' + this.storeKey + ')');
+            const message = '(CAUTION) The states on this window are not latest! (storeKey: ' + this.storeKey + ')';
+            toastrMix(message, this.flagUseToastr, toastr.warning, alert);
+            // alert('(CAUTION) The states on this window are not latest! (storeKey: ' + this.storeKey + ')');
             resolve(new Logger('alert', this.storeKey));
           }
         } else {
@@ -448,6 +462,8 @@ export class Store {
     this.states = null; // メモリ解放。
     this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
     this._dispatcher$.next(null);
+    const message = 'States and Storages are cleared. (storeKey: ' + this.storeKey + ')';
+    toastrMix(message, this.flagUseToastr, toastr.success, console.log);
   }
 }
 
@@ -589,6 +605,14 @@ function pluckValueFromState<T>(obj: State | Object): T {
     return obj['value'] as T;
   } else {
     return obj as T;
+  }
+}
+
+function toastrMix(message: string, flag: boolean, toastrFn: Function, altFn?: Function): void {
+  if (flag) {
+    toastrFn.call(null, message);
+  } else if (altFn) {
+    altFn.call(null, message);
   }
 }
 

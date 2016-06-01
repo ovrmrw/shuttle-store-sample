@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, AfterVie
 import { Observable } from 'rxjs/Rx';
 import c3 from 'c3';
 import lodash from 'lodash';
+import toastr from 'toastr';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page4Service, Page4State } from './page4.service';
@@ -86,7 +87,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
           if (this.proccessing) {
             const keyCode = event.keyCode;
             if (keyCode - previousKeyCode !== 1) {
-              alert('OOPS! TRY AGAIN.');
+              toastr.error('OOPS! TRY AGAIN.'); // alert('OOPS! TRY AGAIN.');
               this.stopTimer();
             } else {
               const now = lodash.now();
@@ -151,7 +152,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
         this.endTime = lodash.now();
         this.textFinished = this.text;
         this.textMissed = null;
-        // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
+        toastr.success('COMPLETED! ' + this.result + "\nLet's watch True-time Replay."); // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
         this.startTruetimeReplay();
       } else {
         this.textMissed = this.text;

@@ -56,13 +56,13 @@ export abstract class AbstractStoreService extends AbstractStoreState {
 
   // Undo。
   rollback(options?: { keepSuspend?: boolean }) {
-    const {keepSuspend} = options;
+    const {keepSuspend} = options || { keepSuspend: false };
     this.mainStore.rollback(keepSuspend);
   }
 
   // Rollbackを元に戻す。つまりRedo。
   revertRollback(options?: { keepSuspend?: boolean }) {
-    const {keepSuspend} = options;
+    const {keepSuspend} = options || { keepSuspend: false };
     this.mainStore.revertRollback(keepSuspend);
   }
 

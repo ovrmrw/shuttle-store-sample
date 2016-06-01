@@ -17,6 +17,7 @@
     "levelup": "registry:dt/levelup#0.0.0+20160316155526",
     "node": "registry:dt/node#4.0.0+20160501135006",
     "serve-static": "registry:dt/serve-static#0.0.0+20160501131543",
+    "toastr": "registry:dt/toastr#2.1.1+20160510010435",
     "xml2js": "registry:dt/xml2js#0.0.0+20160317120654"
   }
 }
