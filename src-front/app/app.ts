@@ -29,8 +29,8 @@ import { Store } from '../shuttle-store';
   `,
   directives: [ROUTER_DIRECTIVES],
   providers: [
-    { provide: Store, useFactory: () => new Store(), multi: true },
-    { provide: Store, useFactory: () => new Store('second'), multi: true }
+    { provide: Store, useFactory: () => new Store({ autoRefresh: true }), multi: true },
+    { provide: Store, useFactory: () => new Store({ storeKey: 'second', autoRefresh: true }), multi: true }
   ],
   changeDetection: ChangeDetectionStrategy.Default
 })

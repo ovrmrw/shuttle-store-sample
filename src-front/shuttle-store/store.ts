@@ -35,6 +35,7 @@ export class Store {
   private _storageKeeper$: Subject<State[]> = new Subject<State[]>();
   private _returner$: BehaviorSubject<State[]>;
   private isReady: boolean = false;
+  private autoRefresh: boolean = false;
 
   private storeKey: string;
   private leveldbStatesKey: string;
@@ -46,13 +47,15 @@ export class Store {
 
   get key() { return this.storeKey; }
 
-  constructor(
-    storeKey?: string
-    // private http: Http
-  ) {
+  constructor(options?: {
+    storeKey?: string;
+    autoRefresh?: boolean;
+  }) {
+    const {storeKey, autoRefresh} = options || { storeKey: '', autoRefresh: false };
     this.storeKey = storeKey || '__default__';
     this.leveldbStatesKey = LEVELDB_KEY + '-' + this.storeKey;
     this.leveldbOsnKey = this.leveldbStatesKey + '-osn';
+    this.autoRefresh = autoRefresh ? true : false;
     // try { // LevelDBからデータを取得する。
     //   console.time('levelDbGetItem');
     //   this.http.get('/leveldb')
@@ -208,15 +211,17 @@ export class Store {
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Promise<Logger> {
     console.time('put(setState)');
     if (!this.isReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.')); }
-    return new Promise(resolve => {
+    return new Promise<Logger>(resolve => {
       const db = levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.leveldbOsnKey, (err, value) => {
         if (err) { console.log(err); }
-
-        this.osnLatest = lodash.max([this.osnLatest, Number(value), 0]) + 1;
-        db.put(this.leveldbOsnKey, this.osnLatest, (err) => {
-          if (err) { console.log(err); }
-        });
+        this.osnLatest = lodash.max([this.osnLatest, Number(value), 0]); // 最新(最大)のosnを取得する。
+        if (nameablesAsIdentifier !== _NOTIFICATION_) { // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
+          this.osnLatest++;
+          db.put(this.leveldbOsnKey, this.osnLatest, (err) => {
+            if (err) { console.log(err); }
+          });
+        }
         // console.log('osnLatest: ' + this.osnLatest);
         const identifier = generateIdentifier(nameablesAsIdentifier);
         const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
@@ -235,23 +240,56 @@ export class Store {
   setState = this.put;
 
   refresh(): Promise<Logger> {
-    console.time('refresh');
-    return new Promise((resolve, reject) => {
-      try { // IndexedDB(level-js)からデータを取得する。        
-        const db = levelup(LEVELDB_NAME, { db: leveljs });
-        db.get(this.leveldbStatesKey, (err, value) => {
-          if (err) { console.log(err); }
-          const states: State[] = value ? JSON.parse(value) : this.states;
-          this.states = states;
+    // console.time('refresh');
+    // return new Promise((resolve, reject) => {
+    //   try { // IndexedDB(level-js)からデータを取得する。        
+    //     const db = levelup(LEVELDB_NAME, { db: leveljs });
+    //     db.get(this.leveldbStatesKey, (err, value) => {
+    //       if (err) { console.log(err); }
+    //       const states: State[] = value ? JSON.parse(value) : this.states;
+    //       this.states = states;
 
-          this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now refreshed!')); // refreshしたらクライアントにPush通知する。
-          resolve(new Logger('refresh', this.storeKey));
-          console.timeEnd('refresh');
-        });
-      } catch (err) {
-        console.log(err);
-        reject(err);
-      }
+    //       this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now refreshed!')); // refreshしたらクライアントにPush通知する。
+    //       resolve(new Logger('refresh', this.storeKey));
+    //       console.timeEnd('refresh');
+    //     });
+    //   } catch (err) {
+    //     console.log(err);
+    //     reject(err);
+    //   }
+    // });
+    const db = levelup(LEVELDB_NAME, { db: leveljs });
+    return new Promise<Logger>((resolve, reject) => {
+      db.get(this.leveldbOsnKey, (err, value) => {
+        if (err) { console.log(err); }
+        const osnFromDb = Number(value);
+        if (this.osnLatest !== osnFromDb) {
+          if (this.autoRefresh) {
+            console.time('refresh');
+            try { // IndexedDB(level-js)からデータを取得する。        
+              const db = levelup(LEVELDB_NAME, { db: leveljs });
+              db.get(this.leveldbStatesKey, (err, value) => {
+                if (err) { console.log(err); }
+                const states: State[] = value ? JSON.parse(value) : this.states;
+                this.states = states;
+
+                this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now refreshed!')); // refreshしたらクライアントにPush通知する。
+                resolve(new Logger('refresh', this.storeKey));
+                console.timeEnd('refresh');
+              });
+            } catch (err) {
+              console.log(err);
+              reject(new Logger(err, this.storeKey));
+            }
+          } else {
+            alert('(CAUTION) The states on this window are not latest! (storeKey: ' + this.storeKey + ')');
+            resolve(new Logger('alert', this.storeKey));
+          }
+        } else {
+          console.log('Refresh was skipped because the states on this window are latest. (storeKey: ' + this.storeKey + ')');
+          resolve(new Logger('latest', this.storeKey));
+        }
+      });
     });
   }
 
