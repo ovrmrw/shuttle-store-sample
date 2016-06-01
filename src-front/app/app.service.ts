@@ -1,4 +1,4 @@
-import { Store, AbstractStoreService } from '../shuttle-store';
+import { Store, AbstractStoreService, AbstractStoreState } from '../shuttle-store';
 
 ////////////////////////////////////////////////////////////////////////////
 // Parent App Service which extends StoreService
@@ -14,5 +14,10 @@ export abstract class AppService extends AbstractStoreService {
 
   static _WIKIPEDIA_ = ['wikipedia-api'];
 
+  constructor(store: Store) { super(store); }
+}
+
+
+export abstract class AppState extends AbstractStoreState {
   constructor(store: Store) { super(store); }
 }

@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@angular/core';
 
-import { Store, AbstractStoreState } from '../shuttle-store';
-import { AppService } from '../services.ref';
+import { Store } from '../shuttle-store';
+import { AppService, AppState } from '../services.ref';
 
 ////////////////////////////////////////////////////////////////////////////
 // Service
@@ -18,7 +18,7 @@ const S = Page1Service; // shorthand
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)
 @Injectable()
-export class Page1State extends AbstractStoreState {
+export class Page1State extends AppState {
   constructor(store: Store) { super(store); }
 
   get title() { return this.store.takeLatest<string>(S._TITLE_); }
