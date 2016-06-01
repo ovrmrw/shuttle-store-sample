@@ -78,7 +78,7 @@ export class Store {
         // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
         this.isReady = true;
 
-        this.put('ready', _NOTIFICATION_, { limit: 1 }).then(x => x.log('Store is now on ready!')); // statesをロードしたらクライアントにPush通知する。
+        this.put('ready', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now on ready!')); // statesをロードしたらクライアントにPush通知する。
       });
     } catch (err) {
       console.log(err);
@@ -157,7 +157,7 @@ export class Store {
     }
   }
 
-  rollback(withCommit?: boolean) {
+  rollback(keepSuspend?: boolean) {
     if (!this.isSuspending) {
       this.suspend();
     }
@@ -178,14 +178,14 @@ export class Store {
       // this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
       console.log(this.snapShots);
     }
-    if (withCommit) {
+    if (!keepSuspend) {
       this.revertSuspend();
     }
   }
 
   // Rollbackを取り消す。
   // snapShotsの最後の要素をthis.statesに戻してsnapShotsの最後の要素を削除する。
-  revertRollback(withCommit?: boolean) {
+  revertRollback(keepSuspend?: boolean) {
     if (!this.isSuspending) {
       this.suspend();
     }
@@ -197,7 +197,7 @@ export class Store {
     } else {
       alert('No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n');
     }
-    if (withCommit) {
+    if (!keepSuspend) {
       this.revertSuspend();
     }
   }
@@ -217,7 +217,7 @@ export class Store {
         db.put(this.leveldbOsnKey, this.osnLatest, (err) => {
           if (err) { console.log(err); }
         });
-        console.log('osnLatest: ' + this.osnLatest);
+        // console.log('osnLatest: ' + this.osnLatest);
         const identifier = generateIdentifier(nameablesAsIdentifier);
         const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
 
@@ -226,7 +226,7 @@ export class Store {
         } else { // サスペンドモードのとき。
           this.tempStates.push(state);
         }
-        resolve(new Logger(state));
+        resolve(new Logger(state, this.storeKey));
         console.timeEnd('put(setState)');
       });
     });
@@ -241,13 +241,12 @@ export class Store {
         const db = levelup(LEVELDB_NAME, { db: leveljs });
         db.get(this.leveldbStatesKey, (err, value) => {
           if (err) { console.log(err); }
-          console.timeEnd('refresh');
           const states: State[] = value ? JSON.parse(value) : this.states;
           this.states = states;
-          // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
 
-          this.put('refresh', _NOTIFICATION_, { limit: 1 }).then(x => x.log('Store is now refreshed!')); // statesをロードしたらクライアントにPush通知する。
-          resolve(new Logger('refresh'));
+          this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now refreshed!')); // refreshしたらクライアントにPush通知する。
+          resolve(new Logger('refresh', this.storeKey));
+          console.timeEnd('refresh');
         });
       } catch (err) {
         console.log(err);
@@ -611,13 +610,14 @@ interface StateRuleOptions {
 ////////////////////////////////////////////////////////////////////////////
 // Logger Class
 class Logger {
-  constructor(private state: State | string) { }
+  constructor(private state: State | string, private storeKey: string = '') { }
 
   log(message?: string): any {
+    const _storeKey = this.storeKey ? '(storeKey: ' + this.storeKey + ')' : '';
     if (message) {
-      console.log('===== Added State: ' + message + ' =====');
+      console.log('===== Added State ' + _storeKey + ': ' + message + ' =====');
     } else {
-      console.log('===== Added State =====');
+      console.log('===== Added State ' + _storeKey + ' =====');
     }
     const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
       p[key] = this[key];

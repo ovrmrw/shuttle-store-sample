@@ -53,21 +53,17 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     this.store.disposeSubscriptions([this]);
   }
 
-  clearStatesAndStorage() {
-    this.store.clearStatesAndStorage();
-  }
-
 
   // Undo。
-  rollback(options?: { withCommit?: boolean }) {
-    const {withCommit} = options;
-    this.store.rollback(withCommit);
+  rollback(options?: { keepSuspend?: boolean }) {
+    const {keepSuspend} = options;
+    this.store.rollback(keepSuspend);
   }
 
   // Rollbackを元に戻す。つまりRedo。
-  revertRollback(options?: { withCommit?: boolean }) {
-    const {withCommit} = options;
-    this.store.revertRollback(withCommit);
+  revertRollback(options?: { keepSuspend?: boolean }) {
+    const {keepSuspend} = options;
+    this.store.revertRollback(keepSuspend);
   }
 
   // サスペンドモードのままになっている場合、元に戻さないとComponentにPushが来ない。
@@ -75,20 +71,35 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     this.store.revertSuspend();
   }
 
+  // AutoRefreshStateが確実に一度だけ登録されるようにstatic変数で制御する。
+  static isReadyForAutoRefreshState: boolean = false;
+
   // ブラウザのタブ切り替えをしたときに自動的にStateを更新する。
   // 下記によると多重にaddEventListnerしても二度目からはdiscardされるので重複はしないとのこと。
   // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-  // TODO: Multi Store対応
-  addEventListnerForAutoRefreshState() {
-    try {
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          this.store.refresh().then(x => x.log('View State Refresh'));
-        }
-      }, false);
-    } catch (err) {
-      console.log(err);
+  addEventListnerForAutoRefreshState(): void {
+    if (!AbstractStoreService.isReadyForAutoRefreshState) {
+      try {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            // this.store.refresh().then(x => x.log('View State Refresh'));
+            this.getStoreArray().forEach(store => {
+              store.refresh().then(x => x.log('View State Refresh Request'));
+            });
+          }
+        }, false);
+      } catch (err) {
+        console.log(err);
+      }
+      AbstractStoreService.isReadyForAutoRefreshState = true;
     }
+  }
+
+  clearStatesAndStorage(): void {
+    // this.store.clearStatesAndStorage();
+    this.getStoreArray().forEach(store => {
+      store.clearStatesAndStorage();
+    });
   }
 
 

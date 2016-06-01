@@ -105,10 +105,10 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   rollback() {
-    this.service.rollback({ withCommit: true });
+    this.service.rollback();
   }
   revertRollback() {
-    this.service.revertRollback({ withCommit: true });
+    this.service.revertRollback();
   }
 
   get title() { return this.state.title; }
