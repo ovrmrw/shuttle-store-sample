@@ -15,8 +15,8 @@ export class Page6Service extends AppService {
   constructor(store: Store, private jsonp: Jsonp) {
     super(store);
     this.localStore = this.getStoreSafely('second'); // 'second'という名称で取得に失敗すると自動的に1番目のStoreを返す。
-      console.log('===== localStore(second) =====');
-    console.log(this.localStore);    
+    console.log('===== localStore(second) =====');
+    console.log(this.localStore);
   }
 
   requestWiki(keyword: string): Observable<any> {
