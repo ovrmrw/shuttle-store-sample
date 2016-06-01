@@ -34,28 +34,29 @@ export class Store {
   private _dispatcher$: Subject<any> = new Subject<any>();
   private _storageKeeper$: Subject<State[]> = new Subject<State[]>();
   private _returner$: BehaviorSubject<State[]>;
-  private isReady: boolean = false;
-  private autoRefresh: boolean = false;
+  private flagReady: boolean = false;
 
   private storeKey: string;
+  get key() { return this.storeKey; }
   private leveldbStatesKey: string;
   private leveldbOsnKey: string;
 
   // サスペンドで使う変数群。
-  private isSuspending: boolean = false;
+  private flagSuspending: boolean = false;
   private tempStates: State[] = [];
 
-  get key() { return this.storeKey; }
+  private flagAutoRefresh: boolean = false;
 
-  constructor(options?: {
-    storeKey?: string;
+  // クラス名だけでDIするとoptionsはundefinedで入ってくるので、その場合の処理も書いておく必要がある。
+  constructor(options: {
+    storeKey: string;
     autoRefresh?: boolean;
   }) {
     const {storeKey, autoRefresh} = options || { storeKey: '', autoRefresh: false };
     this.storeKey = storeKey || '__default__';
     this.leveldbStatesKey = LEVELDB_KEY + '-' + this.storeKey;
     this.leveldbOsnKey = this.leveldbStatesKey + '-osn';
-    this.autoRefresh = autoRefresh ? true : false;
+    this.flagAutoRefresh = autoRefresh ? true : false;
     // try { // LevelDBからデータを取得する。
     //   console.time('levelDbGetItem');
     //   this.http.get('/leveldb')
@@ -79,7 +80,7 @@ export class Store {
         const states: State[] = value ? JSON.parse(value) : this.states;
         this.states = states;
         // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
-        this.isReady = true;
+        this.flagReady = true;
 
         this.put('ready', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now on ready!')); // statesをロードしたらクライアントにPush通知する。
       });
@@ -140,31 +141,31 @@ export class Store {
 
   // サスペンドモードに入る
   suspend() {
-    this.isSuspending = true;
+    this.flagSuspending = true;
   }
 
   // サスペンドモードから戻る
   revertSuspend() {
-    if (this.isSuspending) {
+    if (this.flagSuspending) {
       this.tempStates.forEach(state => this.states.push(state));
       this.tempStates = [];
-      this.isSuspending = false;
+      this.flagSuspending = false;
       this._dispatcher$.next(null);
     }
   }
 
   private createSnapShot() {
-    if (this.isSuspending) {
+    if (this.flagSuspending) {
       const states = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
       this.snapShots.push(states);
     }
   }
 
   rollback(keepSuspend?: boolean) {
-    if (!this.isSuspending) {
+    if (!this.flagSuspending) {
       this.suspend();
     }
-    if (this.isSuspending) {
+    if (this.flagSuspending) {
       this.createSnapShot();
 
       // 末尾から探索して最初に見つかったrollback=trueな要素を削除する。
@@ -189,10 +190,10 @@ export class Store {
   // Rollbackを取り消す。
   // snapShotsの最後の要素をthis.statesに戻してsnapShotsの最後の要素を削除する。
   revertRollback(keepSuspend?: boolean) {
-    if (!this.isSuspending) {
+    if (!this.flagSuspending) {
       this.suspend();
     }
-    if (this.isSuspending && this.snapShots.length > 0) {
+    if (this.flagSuspending && this.snapShots.length > 0) {
       const states = this.snapShots[this.snapShots.length - 1]; // 配列の末尾を取得
       this.states = states;
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
@@ -209,13 +210,14 @@ export class Store {
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Promise<Logger> {
+    if (!this.flagReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.')); }
     console.time('put(setState)');
-    if (!this.isReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.')); }
     return new Promise<Logger>(resolve => {
       const db = levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.leveldbOsnKey, (err, value) => {
         if (err) { console.log(err); }
         this.osnLatest = lodash.max([this.osnLatest, Number(value), 0]); // 最新(最大)のosnを取得する。
+
         if (nameablesAsIdentifier !== _NOTIFICATION_) { // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
           this.osnLatest++;
           db.put(this.leveldbOsnKey, this.osnLatest, (err) => {
@@ -226,7 +228,7 @@ export class Store {
         const identifier = generateIdentifier(nameablesAsIdentifier);
         const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
 
-        if (!this.isSuspending) {
+        if (!this.flagSuspending) {
           this._dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
         } else { // サスペンドモードのとき。
           this.tempStates.push(state);
@@ -235,7 +237,6 @@ export class Store {
         console.timeEnd('put(setState)');
       });
     });
-
   }
   setState = this.put;
 
@@ -264,7 +265,7 @@ export class Store {
         if (err) { console.log(err); }
         const osnFromDb = Number(value);
         if (this.osnLatest !== osnFromDb) {
-          if (this.autoRefresh) {
+          if (this.flagAutoRefresh) {
             console.time('refresh');
             try { // IndexedDB(level-js)からデータを取得する。        
               const db = levelup(LEVELDB_NAME, { db: leveljs });

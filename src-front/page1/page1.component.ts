@@ -76,7 +76,7 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   clearState() {
-    this.service.clearStatesAndStorage();
+    this.service.clearAllStatesAndAllStorages();
   }
 
   // Observableにより更新される変数なので勝手に変更しないこと。;

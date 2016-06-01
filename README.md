@@ -11,7 +11,9 @@ Due to Store's Push behavior, it allows Angular2 OnPush-ChangeDetection-Strategy
 
 Store now has Undo/Redo feature, it allows you to undo all of your operations.
 
-States on Store will be saved to IndexedDB(powered by LevelDB) to prevent to be lost your data. 
+States on Store will be saved to IndexedDB(powered by LevelDB) anytime to prevent to be lost your data. 
+
+AutoRefresh feature, if you switch browser tabs and show a page, Store will detect a necessity of states refresh and execute auto-refresh immediately.
 
 ---
 

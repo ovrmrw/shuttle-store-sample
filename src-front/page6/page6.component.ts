@@ -53,7 +53,7 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   get title() { return this.state.title; }
 
   clearState() {
-    this.service.clearStatesAndStorage();
+    this.service.clearAllStatesAndAllStorages();
   }
 
   private keyword: string;

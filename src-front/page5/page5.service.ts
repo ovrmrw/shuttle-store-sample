@@ -10,7 +10,7 @@ import { FormData } from './page5.component';
 export class Page5Service extends AppService {
   constructor(store: Store) { super(store); }
 
-  putForm(data: FormData) { return this.store.put(data, S._FORMDATA_, { rollback: true }); }
+  putForm(data: FormData) { return this.mainStore.put(data, S._FORMDATA_, { rollback: true }); }
 }
 
 const S = Page5Service; // shorthand
@@ -21,9 +21,9 @@ const S = Page5Service; // shorthand
 export class Page5State extends AppState {
   constructor(store: Store) { super(store); }
 
-  get title() { return this.store.takeLatest<string>(S._TITLE_); }
+  get title() { return this.mainStore.takeLatest<string>(S._TITLE_); }
 
-  get form() { return this.store.takeLatest<FormData>(S._FORMDATA_); }
-  get form$() { return this.store.takeLatest$<FormData>(S._FORMDATA_); }
-  get formReplayStream$$() { return this.store.takePresetReplayStream$<FormData>(S._FORMDATA_, { interval: 20, limit: 100 }); }
+  get form() { return this.mainStore.takeLatest<FormData>(S._FORMDATA_); }
+  get form$() { return this.mainStore.takeLatest$<FormData>(S._FORMDATA_); }
+  get formReplayStream$$() { return this.mainStore.takePresetReplayStream$<FormData>(S._FORMDATA_, { interval: 20, limit: 100 }); }
 }

@@ -18,5 +18,5 @@ const S = Page3Service; // shorthand
 export class Page3State extends AppState {
   constructor(store: Store) { super(store); }
 
-  get title() { return this.store.takeLatest<string>(S._TITLE_); }
+  get title() { return this.mainStore.takeLatest<string>(S._TITLE_); }
 }

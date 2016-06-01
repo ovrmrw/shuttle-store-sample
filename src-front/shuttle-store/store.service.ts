@@ -32,16 +32,16 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   //     return this.store;
   //   }
   // }
-  constructor(stores: StoreMulti) {
-    super(stores);
+  constructor(storeMulti: StoreMulti) {
+    super(storeMulti);
     this.addEventListnerForAutoRefreshState();
   }
 
   // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。
-  get storeNotificator$$() { return this.store.takeLatest$(_NOTIFICATION_); }
+  get storeNotificator$$() { return this.mainStore.takeLatest$(_NOTIFICATION_); }
 
   set disposableSubscription(subscription: Subscription) {
-    this.store.setDisposableSubscription(subscription, [this]);
+    this.mainStore.setDisposableSubscription(subscription, [this]);
   }
   set disposableSubscriptions(subscriptions: Subscription[]) {
     subscriptions.forEach(subscription => {
@@ -50,40 +50,49 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   }
 
   disposeSubscriptionsBeforeRegister() {
-    this.store.disposeSubscriptions([this]);
+    this.mainStore.disposeSubscriptions([this]);
   }
 
 
   // Undo。
   rollback(options?: { keepSuspend?: boolean }) {
     const {keepSuspend} = options;
-    this.store.rollback(keepSuspend);
+    this.mainStore.rollback(keepSuspend);
   }
 
   // Rollbackを元に戻す。つまりRedo。
   revertRollback(options?: { keepSuspend?: boolean }) {
     const {keepSuspend} = options;
-    this.store.revertRollback(keepSuspend);
+    this.mainStore.revertRollback(keepSuspend);
   }
 
   // サスペンドモードのままになっている場合、元に戻さないとComponentにPushが来ない。
   revertSuspend() {
-    this.store.revertSuspend();
+    this.mainStore.revertSuspend();
   }
 
+
+  clearAllStatesAndAllStorages(): void {
+    // this.store.clearStatesAndStorage();
+    this.stores.forEach(store => {
+      store.clearStatesAndStorage();
+    });
+  }
+
+
   // AutoRefreshStateが確実に一度だけ登録されるようにstatic変数で制御する。
-  static isReadyForAutoRefreshState: boolean = false;
+  static flagAutoRefreshState: boolean = false;
 
   // ブラウザのタブ切り替えをしたときに自動的にStateを更新する。
   // 下記によると多重にaddEventListnerしても二度目からはdiscardされるので重複はしないとのこと。
   // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-  addEventListnerForAutoRefreshState(): void {
-    if (!AbstractStoreService.isReadyForAutoRefreshState) {
+  private addEventListnerForAutoRefreshState(): void {
+    if (!AbstractStoreService.flagAutoRefreshState) {
       try {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
             // this.store.refresh().then(x => x.log('View State Refresh'));
-            this.getStoreArray().forEach(store => {
+            this.stores.forEach(store => {
               store.refresh().then(x => x.log('View State Refresh Request'));
             });
           }
@@ -91,17 +100,16 @@ export abstract class AbstractStoreService extends AbstractStoreState {
       } catch (err) {
         console.log(err);
       }
-      AbstractStoreService.isReadyForAutoRefreshState = true;
+      AbstractStoreService.flagAutoRefreshState = true;
     }
   }
 
-  clearStatesAndStorage(): void {
-    // this.store.clearStatesAndStorage();
-    this.getStoreArray().forEach(store => {
-      store.clearStatesAndStorage();
-    });
-  }
 
+
+
+
+  //////////////////////////////////////////////////////////////////////////////////
+  // DEPRECATED
 
   // DEPRECATED
   // NOT RECOMMENDED TO USE

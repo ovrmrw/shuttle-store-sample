@@ -181,7 +181,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
   get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
 
   clearState() {
-    this.service.clearStatesAndStorage();
+    this.service.clearAllStatesAndAllStorages();
   }
 
   text: string;

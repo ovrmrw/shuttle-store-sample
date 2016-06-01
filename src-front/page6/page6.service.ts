@@ -51,5 +51,5 @@ export class Page6State extends AppState {
   constructor(store: Store) { super(store); }
 
   // this.storeはデフォルト(1番目)のStore。getStoreSafely関数で他のStoreを取得することもできる。
-  get title() { return this.store.takeLatest<string>(S._TITLE_); }
+  get title() { return this.mainStore.takeLatest<string>(S._TITLE_); }
 }
