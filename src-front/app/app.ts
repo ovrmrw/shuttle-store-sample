@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { Route, RouteConfig, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 import { Page1Component } from '../page1/page1.component';
 import { Page2Component } from '../page2/page2.component';

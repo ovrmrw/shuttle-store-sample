@@ -32,7 +32,10 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   //     return this.store;
   //   }
   // }
-  constructor(stores: StoreMulti) { super(stores); }
+  constructor(stores: StoreMulti) {
+    super(stores);
+    this.addEventListnerForAutoRefreshState();
+  }
 
   // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。
   get storeNotificator$$() { return this.store.takeLatest$(_NOTIFICATION_); }
@@ -55,7 +58,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   }
 
 
-  // 引数のタイムスタンプまでStateを戻す。つまりUndo。
+  // Undo。
   rollback(options?: { withCommit?: boolean }) {
     const {withCommit} = options;
     this.store.rollback(withCommit);
@@ -72,6 +75,21 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     this.store.revertSuspend();
   }
 
+  // ブラウザのタブ切り替えをしたときに自動的にStateを更新する。
+  // 下記によると多重にaddEventListnerしても二度目からはdiscardされるので重複はしないとのこと。
+  // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+  // TODO: Multi Store対応
+  addEventListnerForAutoRefreshState() {
+    try {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.store.refresh().then(x => x.log('View State Refresh'));
+        }
+      }, false);
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
 
   // DEPRECATED

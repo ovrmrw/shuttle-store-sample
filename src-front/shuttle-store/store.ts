@@ -35,7 +35,7 @@ export class Store {
   private _storageKeeper$: Subject<State[]> = new Subject<State[]>();
   private _returner$: BehaviorSubject<State[]>;
   private isReady: boolean = false;
-  
+
   private storeKey: string;
   private leveldbStatesKey: string;
   private leveldbOsnKey: string;
@@ -233,6 +233,28 @@ export class Store {
 
   }
   setState = this.put;
+
+  refresh(): Promise<Logger> {
+    console.time('refresh');
+    return new Promise((resolve, reject) => {
+      try { // IndexedDB(level-js)からデータを取得する。        
+        const db = levelup(LEVELDB_NAME, { db: leveljs });
+        db.get(this.leveldbStatesKey, (err, value) => {
+          if (err) { console.log(err); }
+          console.timeEnd('refresh');
+          const states: State[] = value ? JSON.parse(value) : this.states;
+          this.states = states;
+          // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
+
+          this.put('refresh', _NOTIFICATION_, { limit: 1 }).then(x => x.log('Store is now refreshed!')); // statesをロードしたらクライアントにPush通知する。
+          resolve(new Logger('refresh'));
+        });
+      } catch (err) {
+        console.log(err);
+        reject(err);
+      }
+    });
+  }
 
   takeMany<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
     const identifier = generateIdentifier(nameablesAsIdentifier);

@@ -17,7 +17,6 @@ export abstract class AppService extends AbstractStoreService {
   constructor(store: Store) { super(store); }
 }
 
-
 export abstract class AppState extends AbstractStoreState {
   constructor(store: Store) { super(store); }
 }

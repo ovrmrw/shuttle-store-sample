@@ -19,7 +19,7 @@ export abstract class AbstractStoreState {
       this.storesObject = { [stores.key]: stores };
     }
     console.log('===== StoresObject =====');
-    console.log(this.storesObject);
+    console.log(this.storesObject);    
   }
 
   getStoreSafely(key: string) {
