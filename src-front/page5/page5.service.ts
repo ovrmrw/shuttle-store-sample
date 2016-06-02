@@ -4,6 +4,7 @@ import { Store } from '../shuttle-store';
 import { AppService, AppState, STORE_FORM } from '../services.ref';
 import { FormData } from './page5.component';
 
+
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
@@ -15,6 +16,7 @@ export class Page5Service extends AppService {
 }
 
 const S = Page5Service; // shorthand
+
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)

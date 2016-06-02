@@ -1,3 +1,4 @@
+import { ChangeDetectorRef } from '@angular/core';
 import { Observable, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
@@ -21,7 +22,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     const observables = this.stores.map(store => store.takeLatest$(_NOTIFICATION_));
     return Observable
       .merge(...observables)
-      .debounceTime(100); // あまり細かくストリームを流す必要もないのでdebounceTime
+      .debounceTime(10); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
 
@@ -35,8 +36,14 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   }
 
 
-  disposeSubscriptionsBeforeRegister() {
+  // ComponentのngOnInitで呼び出される。
+  // 前回登録したSubscriptionを全てunsubscribeし、新たにStoreのStateUpdateをComponentに通知するストリームを登録する。
+  // これによりStoreに何か変更があったときにViewを更新することができる。
+  initializeSubscriptionsOnInit(cd: ChangeDetectorRef) {
     this.mainStore.disposeSubscriptions([this]);
+    if (cd) {
+      this.disposableSubscription = this.storeNotificator$$.subscribe(() => cd.markForCheck());
+    }
   }
 
 

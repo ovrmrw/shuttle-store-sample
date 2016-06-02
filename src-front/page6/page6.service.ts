@@ -6,6 +6,7 @@ import lodash from 'lodash';
 import { Store } from '../shuttle-store';
 import { AppService, AppState, STORE_SECOND } from '../services.ref';
 
+
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
@@ -37,6 +38,7 @@ export class Page6Service extends AppService {
 }
 
 const S = Page6Service; // shorthand
+
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)

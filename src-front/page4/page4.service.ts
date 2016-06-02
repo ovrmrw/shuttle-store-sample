@@ -4,6 +4,7 @@ import { Store } from '../shuttle-store';
 import { AppService, AppState } from '../services.ref';
 import { KeyInput } from './page4.component';
 
+
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
@@ -14,6 +15,7 @@ export class Page4Service extends AppService {
 }
 
 const S = Page4Service; // shorthand
+
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)

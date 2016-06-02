@@ -33,7 +33,7 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef
   ) { }
   ngOnInit() {
-    this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
+    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 

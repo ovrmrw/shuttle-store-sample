@@ -59,15 +59,13 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
     private el: ElementRef
   ) { }
   ngOnInit() {
-    this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
+    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 
   registerSubscriptionsEveryActivate() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
-      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()),
-
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)

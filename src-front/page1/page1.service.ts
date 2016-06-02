@@ -3,6 +3,7 @@ import { Injectable, Inject } from '@angular/core';
 import { Store } from '../shuttle-store';
 import { AppService, AppState } from '../services.ref';
 
+
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
@@ -14,6 +15,7 @@ export class Page1Service extends AppService {
 }
 
 const S = Page1Service; // shorthand
+
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)

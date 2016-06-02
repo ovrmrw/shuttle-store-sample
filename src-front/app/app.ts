@@ -35,9 +35,9 @@ import { Page7Component } from '../page7/page7.component';
     // { provide: Store, useFactory: () => new Store(STORE_MAIN, { autoRefresh: true, devMode: true, useToastr: true }), multi: true },
     // { provide: Store, useFactory: () => new Store(STORE_SECOND, { autoRefresh: true, devMode: true, useToastr: true }), multi: true },
     // { provide: Store, useFactory: () => new Store(STORE_FORM, { autoRefresh: false, devMode: true, useToastr: true }), multi: true }
-    provide(Store, { useFactory: () => new Store(STORE_MAIN, { autoRefresh: true, devMode: false, useToastr: true }), multi: true }),
-    provide(Store, { useFactory: () => new Store(STORE_SECOND, { autoRefresh: true, devMode: false, useToastr: true }), multi: true }),
-    provide(Store, { useFactory: () => new Store(STORE_FORM, { autoRefresh: false, devMode: false, useToastr: true }), multi: true }),
+    provide(Store, { useFactory: () => new Store(STORE_MAIN, { autoRefresh: true, devMode: true, useToastr: true }), multi: true }),
+    provide(Store, { useFactory: () => new Store(STORE_SECOND, { autoRefresh: true, devMode: true, useToastr: true }), multi: true }),
+    provide(Store, { useFactory: () => new Store(STORE_FORM, { autoRefresh: false, devMode: true, useToastr: true }), multi: true }),
   ],
   changeDetection: ChangeDetectionStrategy.Default
 })

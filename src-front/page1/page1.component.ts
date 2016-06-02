@@ -31,20 +31,9 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
     private service: Page1Service,
     private state: Page1State,
     private cd: ChangeDetectorRef
-  ) {
-    // try {
-    //   document.addEventListener('visibilitychange', () => {
-    //     if (document.visibilityState === 'visible') {
-    //       this.service.storeRefresh().then(x => x.log('Refresh'));
-    //     }
-    //   }, false);
-    // } catch (err) {
-    //   console.log(err);
-    // }
-    // this.service.addEventListnerForRefreshState();
-  }
+  ) { }
   ngOnInit() {
-    this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
+    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 

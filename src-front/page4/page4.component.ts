@@ -61,7 +61,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       axis: { x: { type: 'category' } },
     });
     // -----
-    this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
+    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
   ngAfterViewInit() {
@@ -126,8 +126,6 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
           }
         })
         .subscribe(),
-
-      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
     ];
   }
 

@@ -31,15 +31,11 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef
   ) { }
   ngOnInit() {
-    this.service.disposeSubscriptionsBeforeRegister(); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
+    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
     this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
   }
 
-  registerSubscriptionsEveryActivate() {
-    this.service.disposableSubscriptions = [
-      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()), // Storeが準備できたらComponentに通知する。
-    ]
-  }
+  registerSubscriptionsEveryActivate() { }
 
   // Falcorのように一度取得したデータはキャッシュされ、次回はキャッシュから取得する。
   requestWiki() {

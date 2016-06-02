@@ -3,6 +3,7 @@ import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 import levelup from 'levelup';
 const leveljs = require('level-js');
+import toastr from 'toastr';
 
 import { State, StateRule, StateRuleOptions, DisposableSubscription, SnapShot, Nameable, ReplayStreamOptions, Logger } from './store.types';
 import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState, informMix, getPositiveNumber } from './store.helpers';
