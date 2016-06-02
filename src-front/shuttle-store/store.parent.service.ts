@@ -7,10 +7,12 @@ import { AbstractStoreState, StoreMulti } from './store.parent.state';
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
 const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
 
+
 export abstract class AbstractStoreService extends AbstractStoreState {
   constructor(storeMulti: StoreMulti) {
     super(storeMulti);
   }
+
 
   // 全てのStoreのStateUpdateをComponentに通知する。
   // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。  
@@ -22,6 +24,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
       .debounceTime(100); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
+
   set disposableSubscription(subscription: Subscription) {
     this.mainStore.setDisposableSubscription(subscription, [this]);
   }
@@ -30,6 +33,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
       this.disposableSubscription = subscription;
     });
   }
+
 
   disposeSubscriptionsBeforeRegister() {
     this.mainStore.disposeSubscriptions([this]);
@@ -42,11 +46,13 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     this.mainStore.rollback(keepSuspend);
   }
 
+
   // Rollbackを元に戻す。つまりRedo。
   revertRollback(options?: { keepSuspend?: boolean }) {
     const {keepSuspend} = options || { keepSuspend: false };
     this.mainStore.revertRollback(keepSuspend);
   }
+
 
   // サスペンドモードのままになっている場合、元に戻さないとComponentにPushが来ない。
   revertSuspend() {

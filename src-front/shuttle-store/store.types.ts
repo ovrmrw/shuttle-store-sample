@@ -6,6 +6,7 @@ import { Store, DEFAULT_LIMIT } from './store';
 export type Nameable = Function | Object | string;
 export type SnapShot = State[];
 
+
 ////////////////////////////////////////////////////////////////////////////
 // State Class
 export class State {
@@ -37,6 +38,7 @@ interface StateOptions {
   ruleOptions: StateRuleOptions;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////
 // StateRule Class
 export class StateRule {
@@ -59,6 +61,7 @@ export interface StateRuleOptions {
   duration?: number;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////
 // Logger Class
 export class Logger {
@@ -66,22 +69,26 @@ export class Logger {
 
   log(message?: string): any {
     const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
-      if (!key.startsWith('_')) { p[key] = this[key]; }
+      if (!key.startsWith('_')) { 
+        p[key] = this[key]; 
+      }
       return p;
     }, {});
-    const _storeKey = this._store ? '(storeKey: ' + this._store.key + ')' : '';
+    const _storeKey = this._store ? `(storeKey: ${this._store.key})` : '';
 
     if ((this._store && this._store.devMode) || !this._store) {
+      const what = this.state instanceof String ? 'Message' : 'Added State';
       if (message) {
-        console.log('===== Added State ' + _storeKey + ': ' + message + ' =====');
+        console.log(`===== ${what} ${_storeKey}: ${message} =====`);
       } else {
-        console.log('===== Added State ' + _storeKey + ' =====');
+        console.log(`===== ${what} ${_storeKey} =====`);
       }
       console.log(obj);
     }
     return obj;
   }
 }
+
 
 ////////////////////////////////////////////////////////////////////////////
 // DisposableSubscription Class

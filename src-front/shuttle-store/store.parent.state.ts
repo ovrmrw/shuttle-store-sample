@@ -3,6 +3,7 @@ import lodash from 'lodash';
 
 export type StoreMulti = Store | Store[];
 
+
 export abstract class AbstractStoreState {
   // AutoRefreshStateが確実に一度だけ登録されるようにstatic変数で制御する。
   static isFirstLoad: boolean = true;
@@ -10,6 +11,7 @@ export abstract class AbstractStoreState {
   protected mainStore: Store;
   private storesObject: { [key: string]: Store };
   private storesArray: Store[];
+
 
   constructor(
     private storeMulti: StoreMulti
@@ -38,6 +40,7 @@ export abstract class AbstractStoreState {
     AbstractStoreState.isFirstLoad = false;
   }
 
+
   getStoreSafely(key: string): Store {
     // try {
     //   return key ? this.storesObject[key] : this.store;
@@ -50,6 +53,7 @@ export abstract class AbstractStoreState {
       return this.mainStore;
     }
   }
+
 
   get stores(): Store[] { return this.storesArray; }
 

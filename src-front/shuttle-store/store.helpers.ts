@@ -3,9 +3,10 @@ import lodash from 'lodash';
 import { Store, DEFAULT_LIMIT } from './store';
 import { State, Nameable } from './store.types';
 
+
 ////////////////////////////////////////////////////////////////////////////
 // Helper Functions
-export function gabageCollector(states: State[]): State[] {
+function gabageCollector(states: State[]): State[] {
   console.time('gabageCollector');
   const keys = states.filter(obj => obj && !!obj.key).map(obj => obj.key);
   const uniqKeys = lodash.uniq(keys);
@@ -27,6 +28,7 @@ export function gabageCollector(states: State[]): State[] {
   console.timeEnd('gabageCollector');
   return newObjs;
 }
+
 
 // gabageCollectorの処理速度が高速になるようにチューニングしたもの。10倍近く速い。
 // 参考: http://qiita.com/keroxp/items/67804391a8d65eb32cb8
@@ -108,6 +110,7 @@ export function gabageCollectorFastTuned(states: State[]): State[] {
   return newObjs;
 }
 
+
 export function generateIdentifier(nameables: Nameable[]): string {
   let ary: string[] = [];
 
@@ -127,6 +130,7 @@ export function generateIdentifier(nameables: Nameable[]): string {
   return ary.join('_');
 }
 
+
 export function pluckValueFromState<T>(obj: State | Object): T {
   // try {
   //   const key = Object.keys(obj).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
@@ -143,6 +147,7 @@ export function pluckValueFromState<T>(obj: State | Object): T {
   }
 }
 
+
 export function informMix(message: string, store: Store, toastrFn?: Function, altFn?: Function): string {
   const _message = message + ' (storeKey: ' + store.key + ')';
   if (store.devMode) {
@@ -155,4 +160,9 @@ export function informMix(message: string, store: Store, toastrFn?: Function, al
     }
   }
   return _message;
+}
+
+
+export function getPositiveNumber(value: number, alt: number) {
+  return value && value > 0 ? value : alt;
 }
