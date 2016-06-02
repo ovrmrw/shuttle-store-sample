@@ -1,29 +1,18 @@
 import { Injectable } from '@angular/core';
-// import { Http, Headers } from '@angular/http';
 import { Observable, Subject, BehaviorSubject, Subscription } from 'rxjs/Rx';
-// import { Observable } from 'rxjs/Observable';
-// import { Subject } from 'rxjs/Subject';
-// import { BehaviorSubject } from 'rxjs/BehaviorSubject';
-// import { Subscription } from 'rxjs/Subscription';
-// import { Scheduler } from 'rxjs/Scheduler';
-// import 'rxjs/add/operator/map';
-// import 'rxjs/add/operator/filter';
-// import 'rxjs/add/operator/debounceTime';
-// import 'rxjs/add/observable/from';
-// import 'rxjs/add/operator/do';
 import lodash from 'lodash';
 import levelup from 'levelup';
 const leveljs = require('level-js');
 import toastr from 'toastr';
 
-type Nameable = Function | Object | string;
-type SnapShot = State[];
+import { State, StateRule, StateRuleOptions, DisposableSubscription, SnapShot, Nameable, ReplayStreamOptions, Logger } from './store.types';
+import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState, informMix } from './store.helpers';
 
 // const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
 const LEVELDB_KEY = 'states';
-const DEFAULT_LIMIT = 1000;
-const DEFAULT_INTERVAL = 10;
+export const DEFAULT_LIMIT = 1000;
+export const DEFAULT_INTERVAL = 10;
 export const _NOTIFICATION_ = ['push-notification-from-store-to-client'];
 
 @Injectable()
@@ -51,20 +40,20 @@ export class Store {
   private enableDevMode: boolean = false;
   get devMode() { return this.enableDevMode; }
   private enableToastr: boolean = false;
-  get useToastr() { return this.enableToastr; }  
+  get useToastr() { return this.enableToastr; }
 
   // クラス名だけでDIすると全ての引数はundefinedで入ってくるので、その場合の処理も書いておく必要がある。
   constructor(storeKey: string, options?: {
     autoRefresh?: boolean;
     devMode?: boolean;
-    useToastr?: boolean;    
+    useToastr?: boolean;
   }) {
     const {autoRefresh, devMode, useToastr} = options || { autoRefresh: false, devMode: false, useToastr: false };
     this.storeKey = storeKey || '__default__';
     this.leveldbStatesKey = LEVELDB_KEY + '-' + this.storeKey;
     this.leveldbOsnKey = this.leveldbStatesKey + '-osn';
 
-    this.enableAutoRefresh = autoRefresh ? true : false;    
+    this.enableAutoRefresh = autoRefresh ? true : false;
     this.enableDevMode = devMode ? true : false;
     this.enableToastr = useToastr ? true : false;
     // try { // LevelDBからデータを取得する。
@@ -255,24 +244,6 @@ export class Store {
   setState = this.put;
 
   refresh(): Promise<Logger> {
-    // console.time('refresh');
-    // return new Promise((resolve, reject) => {
-    //   try { // IndexedDB(level-js)からデータを取得する。        
-    //     const db = levelup(LEVELDB_NAME, { db: leveljs });
-    //     db.get(this.leveldbStatesKey, (err, value) => {
-    //       if (err) { console.log(err); }
-    //       const states: State[] = value ? JSON.parse(value) : this.states;
-    //       this.states = states;
-
-    //       this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log('Store is now refreshed!')); // refreshしたらクライアントにPush通知する。
-    //       resolve(new Logger('refresh', this.storeKey));
-    //       console.timeEnd('refresh');
-    //     });
-    //   } catch (err) {
-    //     console.log(err);
-    //     reject(err);
-    //   }
-    // });
     const db = levelup(LEVELDB_NAME, { db: leveljs });
     return new Promise<Logger>((resolve, reject) => {
       db.get(this.leveldbOsnKey, (err, value) => {
@@ -455,274 +426,9 @@ export class Store {
   }
 
   clearStatesAndStorage(): void {
-    // try {
-    //   window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-    // } catch (err) {
-    //   console.error(err);
-    // }
     this.states = null; // メモリ解放。
     this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
     this._dispatcher$.next(null);
-    const message = 'States and Storages are cleared. (storeKey: ' + this.storeKey + ')';
-    informMix(message, this, toastr.success, console.log);
+    informMix('States and Storages are cleared.', this, toastr.success, console.log);
   }
-}
-
-
-////////////////////////////////////////////////////////////////////////////
-// Helper Functions
-function gabageCollector(states: State[]): State[] {
-  console.time('gabageCollector');
-  const keys = states.filter(obj => obj && !!obj.key).map(obj => obj.key);
-  const uniqKeys = lodash.uniq(keys);
-  // console.log('Keys: ' + uniqKeys.join(', '));
-  let newObjs: State[] = [];
-
-  // key毎に保存最大数を超えたものをカットして新しい配列を作る。
-  uniqKeys.forEach(identifier => {
-    const objs = states.filter(obj => obj && obj.key === identifier);
-    const lastObj = objs[objs.length - 1]; // 配列の末尾を取得
-    const limit = lastObj.rule && lastObj.rule.limit ? lastObj.rule.limit : DEFAULT_LIMIT;
-    if (objs.length > limit) {
-      objs.reverse().slice(0, limit).reverse().forEach(obj => newObjs.push(obj));
-    } else {
-      objs.forEach(obj => newObjs.push(obj));
-    }
-  });
-  newObjs = newObjs.sort((a, b) => a.osn > b.osn ? 1 : -1); // ObjectSequenceNumberの昇順で並べ替える。
-  console.timeEnd('gabageCollector');
-  return newObjs;
-}
-
-// gabageCollectorの処理速度が高速になるようにチューニングしたもの。10倍近く速い。
-// 参考: http://qiita.com/keroxp/items/67804391a8d65eb32cb8
-function gabageCollectorFastTuned(states: State[]): State[] {
-  if (states.length === 0) { return states; }
-  console.time('gabageCollectorFastTuned');
-  // const keys = stateObjects.filter(obj => obj && typeof obj === 'object').map(obj => Object.keys(obj)[0]);
-  let keys: string[] = [];
-  // let i = 0;
-  for (let i = 0; i < states.length; i = (i + 1) | 0) {
-    const state = states[i];
-    if (state && !!state.key) { // この段階でstate.keyがnullのものは除外される。
-      keys.push(state.key);
-    }
-    // i = (i + 1) | 0;
-  }
-  const uniqKeys = lodash.uniq(keys);
-  // console.log('Keys: ' + uniqKeys.join(', '));
-  let newObjs: State[] = [];
-
-  // key毎に保存最大数を超えたものをカットして新しい配列を作る。
-  // uniqKeys.forEach(key => {
-  //   const objs = stateObjects.filter(obj => obj && key in obj);
-  //   if (objs.length > maxElementsByKey) {
-  //     objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
-  //   } else {
-  //     objs.forEach(obj => newObjs.push(obj));
-  //   }
-  // });
-  // let j = 0;
-  for (let j = 0; j < uniqKeys.length; j = (j + 1) | 0) {
-    // const objs = stateObjects.filter(obj => obj && uniqKeys[i] in obj);
-    const identifier = uniqKeys[j];
-    let objs: State[] = [];
-    // let k = 0;
-    for (let k = 0; k < states.length; k = (k + 1) | 0) {
-      const state = states[k];
-      if (state && state.key === identifier) {
-        objs.push(state);
-      }
-      // k = (k + 1) | 0;
-    }
-
-    // StateRuleが保持されている場合、最大保存数を差し替える。
-    const stateLast = objs[objs.length - 1]; // 配列の末尾を取得
-    const limit = stateLast.rule && stateLast.rule.limit ? stateLast.rule.limit : DEFAULT_LIMIT;
-    const filterId = stateLast.rule && stateLast.rule.filterId ? stateLast.rule.filterId : null;
-
-    // uniqueIdが指定されている場合、同じuniqueIdのものだけ抽出する。
-    if (filterId) {
-      objs = objs.filter(obj => obj.rule && obj.rule.filterId ? obj.rule.filterId === filterId : true);
-    }
-
-    // durationが指定されている場合、durationを過ぎていないものだけ抽出する。
-    const now = lodash.now();
-    objs = objs.filter(obj => obj.rule && obj.rule.duration ? now - obj.timestamp < obj.rule.duration : true);
-
-    if (objs.length > limit) {
-      // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
-      // const ary = objs.reverse().slice(0, _limit).reverse(); // TODO:もっとやりようがある。
-      const ary = objs.slice(0, limit * -1);
-      // let l = 0;
-      for (let l = 0; l < ary.length; l = (l + 1) | 0) {
-        newObjs.push(ary[l]);
-        // l = (l + 1) | 0;
-      }
-    } else {
-      // objs.forEach(obj => newObjs.push(obj));
-      // let l = 0;
-      for (let l = 0; l < objs.length; l = (l + 1) | 0) {
-        newObjs.push(objs[l]);
-        // l = (l + 1) | 0;
-      }
-    }
-    // j = (j + 1) | 0;
-  }
-  newObjs = newObjs.sort((a, b) => a.osn > b.osn ? 1 : -1); // ObjectSequenceNumberの昇順で並べ替える。
-  console.timeEnd('gabageCollectorFastTuned');
-  return newObjs;
-}
-
-function generateIdentifier(nameables: Nameable[]): string {
-  let ary: string[] = [];
-
-  nameables.reduce((p: string[], nameable) => {
-    if (nameable && typeof nameable === 'string') {
-      p.push(nameable);
-    } else if (nameable && typeof nameable === 'function') {
-      p.push(nameable.name);
-    } else if (nameable && typeof nameable === 'object') {
-      p.push(nameable.constructor.name);
-    } else {
-      p.push('###');
-    }
-    return p;
-  }, ary);
-
-  return ary.join('_');
-}
-
-function pluckValueFromState<T>(obj: State | Object): T {
-  // try {
-  //   const key = Object.keys(obj).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
-  //   return obj[key] as T;
-  // } catch (err) {
-  //   return obj as T;
-  // }
-  if (obj && obj instanceof State) {
-    return obj.value as T;
-  } else if (obj && 'value' in obj) { // LocalStorageからStatesを復旧した場合はこちらを通る。
-    return obj['value'] as T;
-  } else {
-    return obj as T;
-  }
-}
-
-function informMix(message: string, store: Store, toastrFn?: Function, altFn?: Function): string {
-  const _message = message + ' (storeKey: ' + store.key + ')';
-  if (store.devMode) {
-    if (store.useToastr && toastrFn) {
-      toastrFn.call(null, _message);
-    } else if (altFn) {
-      altFn.call(null, _message);
-    } else {
-      console.log(_message);
-    }
-  }
-  return _message;
-}
-
-
-////////////////////////////////////////////////////////////////////////////
-// State Class
-class State {
-  key: string;
-  value: any;
-  osn: number;
-  timestamp: number;
-  rule: StateRule;
-  constructor(options?: StateOptions) {
-    if (options) {
-      const {key, value, osn, ruleOptions} = options;
-      this.key = key ? key : null;
-      this.value = lodash.isUndefined(value) ? null : value;
-      this.osn = osn;
-      this.rule = ruleOptions ? new StateRule(ruleOptions) : null;
-    } else {
-      this.key = null;
-      this.value = null;
-      this.osn = null;
-      this.rule = null;
-    }
-    this.timestamp = lodash.now();
-  }
-}
-interface StateOptions {
-  key: string;
-  value: any;
-  osn: number;
-  ruleOptions: StateRuleOptions;
-}
-
-////////////////////////////////////////////////////////////////////////////
-// StateRule Class
-class StateRule {
-  limit: number;
-  rollback: boolean;
-  filterId: string | number;
-  duration: number;
-  constructor(options: StateRuleOptions) {
-    const {limit, rollback, filterId, duration} = options;
-    this.limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
-    this.rollback = rollback ? true : false;
-    this.filterId = filterId ? filterId : null;
-    this.duration = duration ? duration : null;
-  }
-}
-interface StateRuleOptions {
-  limit?: number;
-  rollback?: boolean;
-  filterId?: string | number;
-  duration?: number;
-}
-
-////////////////////////////////////////////////////////////////////////////
-// Logger Class
-class Logger {
-  constructor(private state: State | string, private _store?: Store) { }
-
-  log(message?: string): any {    
-    const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
-      if (!key.startsWith('_')) { p[key] = this[key]; }
-      return p;
-    }, {});
-    const _storeKey = this._store ? '(storeKey: ' + this._store.key + ')' : '';
-    
-    if ((this._store && this._store.devMode) || !this._store) {
-      if (message) {
-        console.log('===== Added State ' + _storeKey + ': ' + message + ' =====');
-      } else {
-        console.log('===== Added State ' + _storeKey + ' =====');
-      }
-      console.log(obj);
-    }
-    return obj;
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////
-// DisposableSubscription Class
-class DisposableSubscription {
-  key: string;
-  value: Subscription;
-  constructor(options: DisposableSubscriptionOptions) {
-    const {key, value} = options;
-    this.key = key ? key : null;
-    this.value = value ? value : null;
-  }
-}
-interface DisposableSubscriptionOptions {
-  key: string;
-  value: Subscription;
-}
-
-
-////////////////////////////////////////////////////////////////////////////
-// Interfaces
-interface ReplayStreamOptions {
-  interval?: number;
-  limit?: number;
-  descending?: boolean;
-  truetime?: boolean;
 }

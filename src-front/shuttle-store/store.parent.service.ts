@@ -2,46 +2,24 @@ import { Observable, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 import { Store, _NOTIFICATION_ } from './store';
-import { AbstractStoreState, StoreMulti } from './store.state';
+import { AbstractStoreState, StoreMulti } from './store.parent.state';
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
 const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
 
 export abstract class AbstractStoreService extends AbstractStoreState {
-  // protected store: Store;
-  // private storesObject: { [key: string]: Store };
-
-  // constructor(
-  //   private stores: StoreMulti
-  // ) {
-  //   this.store = stores instanceof Array ? stores[0] : stores;
-
-  //   if (stores instanceof Array) {
-  //     const keys = stores.map(s => s.key);
-  //     this.storesObject = lodash.zipObject(keys, stores) as { [key: string]: Store };
-  //   } else {
-  //     this.storesObject = { [stores.key]: stores };
-  //   }
-  //   console.log(this.storesObject);
-  // }
-
-  // getStoreSafely(key: string) {
-  //   try {
-  //     return this.storesObject[key];
-  //   } catch (err) {
-  //     return this.store;
-  //   }
-  // }
   constructor(storeMulti: StoreMulti) {
     super(storeMulti);
-    this.addEventListnerForAutoRefreshState();
   }
 
-  // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。
+  // 全てのStoreのStateUpdateをComponentに通知する。
+  // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。  
   get storeNotificator$$() {
     // return this.mainStore.takeLatest$(_NOTIFICATION_); 
     const observables = this.stores.map(store => store.takeLatest$(_NOTIFICATION_));
-    return Observable.merge(...observables);
+    return Observable
+      .merge(...observables)
+      .debounceTime(100); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
   set disposableSubscription(subscription: Subscription) {
@@ -84,29 +62,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   }
 
 
-  // AutoRefreshStateが確実に一度だけ登録されるようにstatic変数で制御する。
-  static flagAutoRefreshState: boolean = false;
 
-  // ブラウザのタブ切り替えをしたときに自動的にStateを更新する。
-  // 下記によると多重にaddEventListnerしても二度目からはdiscardされるので重複はしないとのこと。
-  // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-  private addEventListnerForAutoRefreshState(): void {
-    if (!AbstractStoreService.flagAutoRefreshState) {
-      try {
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') {
-            // this.store.refresh().then(x => x.log('View State Refresh'));
-            this.stores.forEach(store => {
-              store.refresh().then(x => x.log('View State Refresh Request'));
-            });
-          }
-        }, false);
-      } catch (err) {
-        console.log(err);
-      }
-      AbstractStoreService.flagAutoRefreshState = true;
-    }
-  }
 
 
 

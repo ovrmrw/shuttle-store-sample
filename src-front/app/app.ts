@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, provide } from '@angular/core';
 import { Route, RouteConfig, ROUTER_DIRECTIVES } from '@angular/router-deprecated';
 
 import { Store } from '../shuttle-store';
@@ -32,9 +32,12 @@ import { Page7Component } from '../page7/page7.component';
   `,
   directives: [ROUTER_DIRECTIVES],
   providers: [
-    { provide: Store, useFactory: () => new Store(STORE_MAIN, { autoRefresh: true, devMode: true, useToastr: true }), multi: true },
-    { provide: Store, useFactory: () => new Store(STORE_SECOND, { autoRefresh: true, devMode: true, useToastr: true }), multi: true },
-    { provide: Store, useFactory: () => new Store(STORE_FORM, { autoRefresh: false, devMode: true, useToastr: true }), multi: true }
+    // { provide: Store, useFactory: () => new Store(STORE_MAIN, { autoRefresh: true, devMode: true, useToastr: true }), multi: true },
+    // { provide: Store, useFactory: () => new Store(STORE_SECOND, { autoRefresh: true, devMode: true, useToastr: true }), multi: true },
+    // { provide: Store, useFactory: () => new Store(STORE_FORM, { autoRefresh: false, devMode: true, useToastr: true }), multi: true }
+    provide(Store, { useFactory: () => new Store(STORE_MAIN, { autoRefresh: true, devMode: false, useToastr: true }), multi: true }),
+    provide(Store, { useFactory: () => new Store(STORE_SECOND, { autoRefresh: true, devMode: false, useToastr: true }), multi: true }),
+    provide(Store, { useFactory: () => new Store(STORE_FORM, { autoRefresh: false, devMode: false, useToastr: true }), multi: true }),
   ],
   changeDetection: ChangeDetectionStrategy.Default
 })
