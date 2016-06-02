@@ -35,7 +35,7 @@ export class Store {
   private _dispatcher$: Subject<any> = new Subject<any>();
   private _storageKeeper$: Subject<State[]> = new Subject<State[]>();
   private _returner$: BehaviorSubject<State[]>;
-  private flagReady: boolean = false;
+  private isReady: boolean = false;
 
   private storeKey: string;
   get key() { return this.storeKey; }
@@ -43,25 +43,30 @@ export class Store {
   private leveldbOsnKey: string;
 
   // サスペンドで使う変数群。
-  private flagSuspending: boolean = false;
+  private isSuspending: boolean = false;
   private tempStates: State[] = [];
 
-  private flagAutoRefresh: boolean = false;
-  private flagUseToastr: boolean = false;
+  private enableAutoRefresh: boolean = false;
+  get autoRefresh() { return this.enableAutoRefresh; }
+  private enableDevMode: boolean = false;
+  get devMode() { return this.enableDevMode; }
+  private enableToastr: boolean = false;
+  get useToastr() { return this.enableToastr; }  
 
-  // クラス名だけでDIするとoptionsはundefinedで入ってくるので、その場合の処理も書いておく必要がある。
-  constructor(options: {
-    storeKey: string;
+  // クラス名だけでDIすると全ての引数はundefinedで入ってくるので、その場合の処理も書いておく必要がある。
+  constructor(storeKey: string, options?: {
     autoRefresh?: boolean;
-    useToastr?: boolean;
+    devMode?: boolean;
+    useToastr?: boolean;    
   }) {
-    const {storeKey, autoRefresh, useToastr} = options || { storeKey: '', autoRefresh: false, useToastr: false };
+    const {autoRefresh, devMode, useToastr} = options || { autoRefresh: false, devMode: false, useToastr: false };
     this.storeKey = storeKey || '__default__';
     this.leveldbStatesKey = LEVELDB_KEY + '-' + this.storeKey;
     this.leveldbOsnKey = this.leveldbStatesKey + '-osn';
 
-    this.flagAutoRefresh = autoRefresh ? true : false;
-    this.flagUseToastr = useToastr ? true : false;
+    this.enableAutoRefresh = autoRefresh ? true : false;    
+    this.enableDevMode = devMode ? true : false;
+    this.enableToastr = useToastr ? true : false;
     // try { // LevelDBからデータを取得する。
     //   console.time('levelDbGetItem');
     //   this.http.get('/leveldb')
@@ -85,11 +90,11 @@ export class Store {
         const states: State[] = value ? JSON.parse(value) : this.states;
         this.states = states;
         // this.osnLatest = lodash.max(this.states.filter(obj => !!obj).map(obj => obj.osn)) || 1; // 0だとput関数の中で躓く。
-        this.flagReady = true;
+        this.isReady = true;
         const message = 'Store is now on ready!';
-        toastrMix(message, this.flagUseToastr, toastr.success);
+        informMix(message, this, toastr.success);
 
-        this.put('ready', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log(message)); // statesをロードしたらクライアントにPush通知する。
+        this.put('ready', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // statesをロードしたらクライアントにPush通知する。
       });
     } catch (err) {
       console.log(err);
@@ -148,31 +153,31 @@ export class Store {
 
   // サスペンドモードに入る
   suspend() {
-    this.flagSuspending = true;
+    this.isSuspending = true;
   }
 
   // サスペンドモードから戻る
   revertSuspend() {
-    if (this.flagSuspending) {
+    if (this.isSuspending) {
       this.tempStates.forEach(state => this.states.push(state));
       this.tempStates = [];
-      this.flagSuspending = false;
+      this.isSuspending = false;
       this._dispatcher$.next(null);
     }
   }
 
   private createSnapShot() {
-    if (this.flagSuspending) {
+    if (this.isSuspending) {
       const states = lodash.cloneDeep(this.states); // Object.assign([], this.states); // lodash.cloneDeep(this.states);
       this.snapShots.push(states);
     }
   }
 
   rollback(keepSuspend?: boolean) {
-    if (!this.flagSuspending) {
+    if (!this.isSuspending) {
       this.suspend();
     }
-    if (this.flagSuspending) {
+    if (this.isSuspending) {
       this.createSnapShot();
 
       // 末尾から探索して最初に見つかったrollback=trueな要素を削除する。
@@ -188,7 +193,7 @@ export class Store {
       }
       // this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
       console.log(this.snapShots);
-      toastrMix('Undo (rollback)', this.flagUseToastr, toastr.info);
+      informMix('Undo (rollback)', this, toastr.info);
     }
     if (!keepSuspend) {
       this.revertSuspend();
@@ -198,18 +203,17 @@ export class Store {
   // Rollbackを取り消す。
   // snapShotsの最後の要素をthis.statesに戻してsnapShotsの最後の要素を削除する。
   revertRollback(keepSuspend?: boolean) {
-    if (!this.flagSuspending) {
+    if (!this.isSuspending) {
       this.suspend();
     }
-    if (this.flagSuspending && this.snapShots.length > 0) {
+    if (this.isSuspending && this.snapShots.length > 0) {
       const states = this.snapShots[this.snapShots.length - 1]; // 配列の末尾を取得
       this.states = states;
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
       console.log(this.snapShots);
-      toastrMix('Redo (revert rollback)', this.flagUseToastr, toastr.info);
+      informMix('Redo (revert rollback)', this, toastr.info);
     } else {
-      const message = 'No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n'
-      toastrMix(message, this.flagUseToastr, toastr.warning, alert);
+      informMix('No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n', this, toastr.warning, alert);
     }
     if (!keepSuspend) {
       this.revertSuspend();
@@ -220,7 +224,7 @@ export class Store {
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Promise<Logger> {
-    if (!this.flagReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.')); }
+    if (!this.isReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.', this)); }
     console.time('put(setState)');
     return new Promise<Logger>(resolve => {
       const db = levelup(LEVELDB_NAME, { db: leveljs });
@@ -228,22 +232,22 @@ export class Store {
         if (err) { console.log(err); }
         this.osnLatest = lodash.max([this.osnLatest, Number(value), 0]); // 最新(最大)のosnを取得する。
 
-        if (nameablesAsIdentifier !== _NOTIFICATION_) { // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
-          this.osnLatest++;
-          db.put(this.leveldbOsnKey, this.osnLatest, (err) => {
-            if (err) { console.log(err); }
-          });
-        }
-        // console.log('osnLatest: ' + this.osnLatest);
+        // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
+        if (nameablesAsIdentifier !== _NOTIFICATION_) { this.osnLatest++; }
+        // osnをLevelDBにWriteする。
+        db.put(this.leveldbOsnKey, this.osnLatest, (err) => {
+          if (err) { console.log(err); }
+          informMix('osnLatest: ' + this.osnLatest, this);
+        });
         const identifier = generateIdentifier(nameablesAsIdentifier);
         const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
 
-        if (!this.flagSuspending) {
+        if (!this.isSuspending) {
           this._dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
         } else { // サスペンドモードのとき。
           this.tempStates.push(state);
         }
-        resolve(new Logger(state, this.storeKey));
+        resolve(new Logger(state, this));
         console.timeEnd('put(setState)');
       });
     });
@@ -275,7 +279,7 @@ export class Store {
         if (err) { console.log(err); }
         const osnFromDb = Number(value);
         if (this.osnLatest !== osnFromDb) {
-          if (this.flagAutoRefresh) {
+          if (this.enableAutoRefresh) {
             console.time('refresh');
             try { // IndexedDB(level-js)からデータを取得する。        
               const db = levelup(LEVELDB_NAME, { db: leveljs });
@@ -284,25 +288,22 @@ export class Store {
                 const states: State[] = value ? JSON.parse(value) : this.states;
                 this.states = states;
 
-                const message = 'Store is now refreshed!';
-                this.put('refreshed', _NOTIFICATION_, { limit: 1, duration: 1000 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
-                resolve(new Logger('refresh', this.storeKey));
+                const message = informMix('Store is now refreshed!', this, toastr.info);
+                this.put('refreshed', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
+                resolve(new Logger('refresh', this));
                 console.timeEnd('refresh');
-                toastrMix(message, this.flagUseToastr, toastr.info);
               });
             } catch (err) {
               console.log(err);
-              reject(new Logger(err, this.storeKey));
+              reject(new Logger(err, this));
             }
           } else {
-            const message = '(CAUTION) The states on this window are not latest! (storeKey: ' + this.storeKey + ')';
-            toastrMix(message, this.flagUseToastr, toastr.warning, alert);
-            // alert('(CAUTION) The states on this window are not latest! (storeKey: ' + this.storeKey + ')');
-            resolve(new Logger('alert', this.storeKey));
+            informMix('(CAUTION) The states on this window are not latest!', this, toastr.warning, alert);
+            resolve(new Logger('alert', this));
           }
         } else {
-          console.log('Refresh was skipped because the states on this window are latest. (storeKey: ' + this.storeKey + ')');
-          resolve(new Logger('latest', this.storeKey));
+          informMix('Refresh was skipped because the states on this window are latest.', this);
+          resolve(new Logger('latest', this));
         }
       });
     });
@@ -463,7 +464,7 @@ export class Store {
     this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
     this._dispatcher$.next(null);
     const message = 'States and Storages are cleared. (storeKey: ' + this.storeKey + ')';
-    toastrMix(message, this.flagUseToastr, toastr.success, console.log);
+    informMix(message, this, toastr.success, console.log);
   }
 }
 
@@ -608,12 +609,18 @@ function pluckValueFromState<T>(obj: State | Object): T {
   }
 }
 
-function toastrMix(message: string, flag: boolean, toastrFn: Function, altFn?: Function): void {
-  if (flag) {
-    toastrFn.call(null, message);
-  } else if (altFn) {
-    altFn.call(null, message);
+function informMix(message: string, store: Store, toastrFn?: Function, altFn?: Function): string {
+  const _message = message + ' (storeKey: ' + store.key + ')';
+  if (store.devMode) {
+    if (store.useToastr && toastrFn) {
+      toastrFn.call(null, _message);
+    } else if (altFn) {
+      altFn.call(null, _message);
+    } else {
+      console.log(_message);
+    }
   }
+  return _message;
 }
 
 
@@ -673,21 +680,24 @@ interface StateRuleOptions {
 ////////////////////////////////////////////////////////////////////////////
 // Logger Class
 class Logger {
-  constructor(private state: State | string, private storeKey: string = '') { }
+  constructor(private state: State | string, private _store?: Store) { }
 
-  log(message?: string): any {
-    const _storeKey = this.storeKey ? '(storeKey: ' + this.storeKey + ')' : '';
-    if (message) {
-      console.log('===== Added State ' + _storeKey + ': ' + message + ' =====');
-    } else {
-      console.log('===== Added State ' + _storeKey + ' =====');
-    }
+  log(message?: string): any {    
     const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
-      p[key] = this[key];
+      if (!key.startsWith('_')) { p[key] = this[key]; }
       return p;
     }, {});
-    console.log(obj);
-    return this;
+    const _storeKey = this._store ? '(storeKey: ' + this._store.key + ')' : '';
+    
+    if ((this._store && this._store.devMode) || !this._store) {
+      if (message) {
+        console.log('===== Added State ' + _storeKey + ': ' + message + ' =====');
+      } else {
+        console.log('===== Added State ' + _storeKey + ' =====');
+      }
+      console.log(obj);
+    }
+    return obj;
   }
 }
 

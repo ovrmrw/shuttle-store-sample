@@ -4,20 +4,14 @@ import { Observable } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 import { Store } from '../shuttle-store';
-import { AppService, AppState } from '../services.ref';
+import { AppService, AppState, STORE_SECOND } from '../services.ref';
 
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
 export class Page6Service extends AppService {
-  // this.storeはデフォルト(1番目)のStoreだが、this.secondStoreは2番目のStore。
-  secondStore: Store;
-  constructor(store: Store, private jsonp: Jsonp) {
-    super(store);
-    this.secondStore = this.getStoreSafely('second'); // 'second'という名称で取得に失敗すると自動的に1番目のStoreを返す。
-    console.log('===== localStore(second) =====');
-    console.log(this.secondStore);
-  }
+  constructor(store: Store, private jsonp: Jsonp) { super(store); }
+  secondStore: Store = this.getStoreSafely(STORE_SECOND); // Wikipediaのデータを保存するためのStore
 
   requestWiki(keyword: string): Observable<any> {
     const _keyword = encodeURIComponent(keyword);
@@ -50,6 +44,5 @@ const S = Page6Service; // shorthand
 export class Page6State extends AppState {
   constructor(store: Store) { super(store); }
 
-  // this.storeはデフォルト(1番目)のStore。getStoreSafely関数で他のStoreを取得することもできる。
   get title() { return this.mainStore.takeLatest<string>(S._TITLE_); }
 }

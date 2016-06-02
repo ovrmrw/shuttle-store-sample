@@ -1,4 +1,4 @@
-import { Subscription } from 'rxjs/Subscription';
+import { Observable, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 import { Store, _NOTIFICATION_ } from './store';
@@ -38,7 +38,11 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   }
 
   // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。
-  get storeNotificator$$() { return this.mainStore.takeLatest$(_NOTIFICATION_); }
+  get storeNotificator$$() {
+    // return this.mainStore.takeLatest$(_NOTIFICATION_); 
+    const observables = this.stores.map(store => store.takeLatest$(_NOTIFICATION_));
+    return Observable.merge(...observables);
+  }
 
   set disposableSubscription(subscription: Subscription) {
     this.mainStore.setDisposableSubscription(subscription, [this]);

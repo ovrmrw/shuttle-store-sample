@@ -29,7 +29,7 @@ export abstract class AbstractStoreState {
     console.log(this.storesArray);
   }
 
-  getStoreSafely(key?: string): Store {
+  getStoreSafely(key: string): Store {
     // try {
     //   return key ? this.storesObject[key] : this.store;
     // } catch (err) {

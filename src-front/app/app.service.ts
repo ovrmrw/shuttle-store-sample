@@ -1,5 +1,9 @@
 import { Store, AbstractStoreService, AbstractStoreState } from '../shuttle-store';
 
+export const STORE_MAIN = 'main';
+export const STORE_SECOND = 'second';
+export const STORE_FORM = 'form';
+
 ////////////////////////////////////////////////////////////////////////////
 // Parent App Service which extends StoreService
 // Mainly, keys of stored values are defined here. 

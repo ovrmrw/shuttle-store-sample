@@ -14,8 +14,8 @@ import { Page7Service, Page7State } from './page7.service';
     <h2>{{title}} - PAGE7</h2>
     <hr />
     <div>Page5のフォームをControl,ControlArray,ControlGroup,Validatorsを使って書き直したものです。</div>
-    <div>動的に入力欄の数を変更させる場合ControlArray周りがややこしくなります。</div>
-    <div>Storeを使ったデータ永続化を組み合わせているのでリロードしても入力値は失われません。</div>    
+    <div>(動的に入力欄の数を変更させる場合ControlArray周りが若干ややこしくなります。)</div>
+    <div>複数のStoreで構成されており、ブラウザタブ切り替えをしたときにタイトルは更新されますがフォームは勝手に更新されないようになっています。</div>    
     <hr />
     <form [ngFormModel]="formGroup">
       <div ngControlGroup="person">
@@ -66,6 +66,8 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   registerSubscriptionsEveryActivate() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
+      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()),
+
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)

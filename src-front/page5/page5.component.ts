@@ -14,6 +14,7 @@ import { Page5Service, Page5State } from './page5.service';
     <hr />
     <div>ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。Email入力欄は数が動的に変化します。</div>
     <div>Undo/Redoができます。このページだけでなくPage1のタイトル等までUndo/Redoは波及します。</div>
+    <div>複数のStoreで構成されており、ブラウザタブ切り替えをしたときにタイトルは更新されますがフォームは勝手に更新されないようになっています。</div>
     <hr />
     <div>FirstName: <input type="text" [(ngModel)]="form.firstName" /></div>
     <div>LastName: <input type="text" [(ngModel)]="form.lastName" /></div>
@@ -56,6 +57,8 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
   registerSubscriptionsEveryActivate() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
+      this.service.storeNotificator$$.subscribe(() => this.cd.markForCheck()),
+      
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)
