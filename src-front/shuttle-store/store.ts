@@ -395,12 +395,12 @@ export class Store {
         subscription.unsubscribe();
       });
     const aliveSubscriptions = this.subscriptions
-      .filter(obj => obj && !!obj.key)
+      .filter(obj => obj && !!obj.key) // これ何のチェック？
       .filter(obj => {
         const subscription = obj.value; // rename
         return subscription && !subscription.isUnsubscribed ? true : false;
       });
-    this.subscriptions = null;
+    this.subscriptions = null; // メモリ解放。
     this.subscriptions = aliveSubscriptions;
     // console.log('↓ subscriptions array on Store ↓');
     // console.log(this.subscriptions);

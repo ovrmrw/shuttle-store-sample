@@ -150,7 +150,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
         this.endTime = lodash.now();
         this.textFinished = this.text;
         this.textMissed = null;
-        toastr.success('COMPLETED! ' + this.result + "\nLet's watch True-time Replay."); // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
+        toastr.success('COMPLETED! ' + this.result + '\nLet\'s watch True-time Replay.'); // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
         this.startTruetimeReplay();
       } else {
         this.textMissed = this.text;

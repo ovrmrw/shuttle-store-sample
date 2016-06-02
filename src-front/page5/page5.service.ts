@@ -8,7 +8,7 @@ import { FormData } from './page5.component';
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
-export class Page5Service extends AppService {  
+export class Page5Service extends AppService {
   constructor(store: Store) { super(store); }
   formStore: Store = this.getStoreSafely(STORE_FORM); // フォームのStateを管理するためのStore
 
