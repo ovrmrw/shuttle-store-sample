@@ -5,8 +5,11 @@ import levelup from 'levelup';
 const leveljs = require('level-js');
 import toastr from 'toastr';
 
-import { State, StateRule, StateRuleOptions, DisposableSubscription, SnapShot, Nameable, ReplayStreamOptions, Logger } from './store.type';
-import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState, informMix, getPositiveNumber, logConstructorName } from './store.helper';
+import { State, StateRule, StateRuleOptions,
+  DisposableSubscription, SnapShot, Nameable,
+  ReplayStreamOptions, Logger } from './store.type';
+import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState,
+  getPositiveNumber, logConstructorName, convertJsonValueToStates } from './store.helper';
 
 // const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
@@ -29,8 +32,12 @@ export class Store {
 
   private storeKey: string;
   get key() { return this.storeKey; }
+
   private dbStatesKey: string;
+  get levelupStatesKey() { return this.dbStatesKey; }
   private dbOsnKey: string;
+  get levelupOsnKey() { return this.dbOsnKey; }
+  getLevelupInstance() { return levelup(LEVELDB_NAME, { db: leveljs }); }
 
   // サスペンドで使う変数群。
   private isSuspending: boolean = false;
@@ -77,15 +84,16 @@ export class Store {
     // }
     try { // IndexedDB(level-js)からデータを取得する。
       console.time('IndexedDB(level-js)GetItem');
-      const db = levelup(LEVELDB_NAME, { db: leveljs });
-      db.get(this.dbStatesKey, (err, value) => {
+      const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
+      db.get(this.levelupStatesKey, (err, value) => {
         if (err) { console.log(err); }
-        const json = String(value); // rename/retype        
-        this.states = json ? JSON.parse(json) : this.states;
+        // const json = value; // rename
+        // this.states = json && typeof (json) === 'string' ? JSON.parse(json) : this.states;
+        this.states = convertJsonValueToStates(value, this.states);
 
-        const message = informMix('Store is now on ready!', this, toastr.success);
+        const message = this.informMix('Store is now on ready!', toastr.success);
         this.isReady = true;
-        this.put('ready', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // statesをロードしたらクライアントにPush通知する。
+        this.putNewNotification('ready', message); // this.put('ready', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // statesをロードしたらクライアントにPush通知する。
         console.timeEnd('IndexedDB(level-js)GetItem');
       });
     } catch (err) {
@@ -129,10 +137,10 @@ export class Store {
         // }
         try { // IndexedDB(level-js)にデータを保存する。
           console.time('IndexedDB(level-js)SetItem');
-          const db = levelup(LEVELDB_NAME, { db: leveljs });
+          const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
           const ops = [
-            { type: 'del', key: this.dbStatesKey },
-            { type: 'put', key: this.dbStatesKey, value: JSON.stringify(states) }
+            { type: 'del', key: this.levelupStatesKey },
+            { type: 'put', key: this.levelupStatesKey, value: JSON.stringify(states) }
           ];
           db.batch(ops, (err) => {
             if (err) { console.log(err); }
@@ -190,7 +198,7 @@ export class Store {
       }
       // this.states = this.states.slice(0, _times * -1); // 配列の末尾を削除
       console.log(this.snapShots);
-      informMix('Undo (rollback)', this, toastr.info);
+      this.informMix('Undo (rollback)', toastr.info);
     }
     if (!keepSuspend) {
       this.revertSuspend();
@@ -209,9 +217,9 @@ export class Store {
       this.states = states;
       this.snapShots = this.snapShots.slice(0, -1); // 配列の末尾を削除
       console.log(this.snapShots);
-      informMix('Redo (revert rollback)', this, toastr.info);
+      this.informMix('Redo (revert rollback)', toastr.info);
     } else {
-      informMix('No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n', this, toastr.warning, alert);
+      this.informMix('No more Snapshots.\nSnapshot will be taken when UNDO is executed, and lost when new State is pushed to Store.\n', toastr.warning, alert);
     }
     if (!keepSuspend) {
       this.revertSuspend();
@@ -225,8 +233,8 @@ export class Store {
     if (!this.isReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.', this)); }
     console.time('put(setState)');
     return new Promise<Logger>(resolve => {
-      const db = levelup(LEVELDB_NAME, { db: leveljs });
-      db.get(this.dbOsnKey, (err, value) => {
+      const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
+      db.get(this.levelupOsnKey, (err, value) => {
         if (err) { console.log(err); }
         const osn = Number(value); // rename/retype
         this.osnLatest = lodash.max([this.osnLatest, osn, 0]); // 最新(最大)のosnを取得する。
@@ -234,9 +242,9 @@ export class Store {
         // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
         if (nameablesAsIdentifier !== _NOTIFICATION_) { this.osnLatest++; }
         // osnをLevelDBにWriteする。
-        db.put(this.dbOsnKey, this.osnLatest, (err) => {
+        db.put(this.levelupOsnKey, this.osnLatest, (err) => {
           if (err) { console.log(err); }
-          informMix('osnLatest: ' + this.osnLatest, this);
+          this.informMix('osnLatest: ' + this.osnLatest);
         });
         const identifier = generateIdentifier(nameablesAsIdentifier);
         const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
@@ -409,30 +417,37 @@ export class Store {
 
 
   clearStatesAndStorage(): void {
+    const db = this.getLevelupInstance();
+    db.del(this.levelupStatesKey, (err) => console.log(err));
+    db.del(this.levelupOsnKey, (err) => console.log(err));
+
     this.states = null; // メモリ解放。
     this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
     this.dispatcher$.next(null);
-    informMix('States and Storages are cleared.', this, toastr.success, console.log);
+    this.informMix('States and Storages are cleared.', toastr.success, console.log);
   }
 
 
   refresh(): Promise<Logger> {
     return new Promise<Logger>((resolve, reject) => {
-      const db = levelup(LEVELDB_NAME, { db: leveljs });
-      db.get(this.dbOsnKey, (err, value) => {
+      const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
+      db.get(this.levelupOsnKey, (err, value) => {
         if (err) { console.log(err); }
-        const osn = Number(value); // rename/retype
+        const osn: number = value ? Number(value) : null; // rename/retype        
         if (this.osnLatest !== osn) {
+          this.informMix(`osn diff detected: osn on memory -> ${this.osnLatest}, osn on DB -> ${osn}`);
           if (this.enableAutoRefresh) {
             console.time('refresh');
             try { // IndexedDB(level-js)からデータを取得する。        
-              db.get(this.dbStatesKey, (err, value) => {
+              db.get(this.levelupStatesKey, (err, value) => {
                 if (err) { console.log(err); }
-                const json = String(value); // rename/retype
-                this.states = json ? JSON.parse(json) : this.states;
+                // const json: string = value && typeof value === 'string' ? value : null; // rename/retype
+                // this.states = json ? JSON.parse(json) : this.states;
+                this.states = convertJsonValueToStates(value, this.states);
 
-                const message = informMix('Store is now refreshed!', this, toastr.info);
-                this.put('refreshed', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
+                const message = this.informMix('Store is now refreshed!', toastr.info);
+                console.log(message);
+                this.putNewNotification('refreshed', message); //this.put('refreshed', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
                 resolve(new Logger('refresh', this));
                 console.timeEnd('refresh');
               });
@@ -441,14 +456,37 @@ export class Store {
               reject(new Logger(err, this));
             }
           } else {
-            informMix('(CAUTION) The states on this window are not latest!', this, toastr.warning, alert);
+            this.informMix('(CAUTION) The states on this window are not latest!', toastr.warning, alert);
             resolve(new Logger('alert', this));
           }
         } else {
-          informMix('Refresh was skipped because the states on this window are latest.', this);
+          this.informMix('Refresh was skipped because the states on this window are latest.');
           resolve(new Logger('latest', this));
         }
       });
     });
+  }
+
+
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Helper Functions
+  // thisがStoreの場合のみ有効
+  private informMix(message: string, toastrFn?: Function, altFn?: Function): string {
+    const _message = message + ' (storeKey: ' + this.storeKey + ')';
+    if (this.devMode) {
+      if (this.useToastr && toastrFn) {
+        toastrFn.call(null, _message);
+      } else if (altFn) {
+        altFn.call(null, _message);
+      } else {
+        console.log(_message);
+      }
+    }
+    return _message;
+  }
+
+  private putNewNotification(value: any, message?: string) {
+    this.put(value, _NOTIFICATION_, { limit: 1 }).then(x => message ? x.log(message) : undefined);
   }
 }

@@ -69,8 +69,8 @@ export class Logger {
 
   log(message?: string): any {
     const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
-      if (!key.startsWith('_')) { 
-        p[key] = this[key]; 
+      if (!key.startsWith('_')) {
+        p[key] = this[key];
       }
       return p;
     }, {});

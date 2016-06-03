@@ -1,6 +1,6 @@
 import lodash from 'lodash';
 
-import { Store, DEFAULT_LIMIT } from './store';
+import { Store, DEFAULT_LIMIT, _NOTIFICATION_ } from './store';
 import { State, Nameable } from './store.type';
 
 
@@ -132,12 +132,6 @@ export function generateIdentifier(nameables: Nameable[]): string {
 
 
 export function pluckValueFromState<T>(obj: State | Object): T {
-  // try {
-  //   const key = Object.keys(obj).filter(key => key.startsWith(IDENTIFIER_PREFIX))[0];
-  //   return obj[key] as T;
-  // } catch (err) {
-  //   return obj as T;
-  // }
   if (obj && obj instanceof State) {
     return obj.value as T;
   } else if (obj && 'value' in obj) { // LocalStorageからStatesを復旧した場合はこちらを通る。
@@ -148,21 +142,6 @@ export function pluckValueFromState<T>(obj: State | Object): T {
 }
 
 
-export function informMix(message: string, store: Store, toastrFn?: Function, altFn?: Function): string {
-  const _message = message + ' (storeKey: ' + store.key + ')';
-  if (store.devMode) {
-    if (store.useToastr && toastrFn) {
-      toastrFn.call(null, _message);
-    } else if (altFn) {
-      altFn.call(null, _message);
-    } else {
-      console.log(_message);
-    }
-  }
-  return _message;
-}
-
-
 export function getPositiveNumber(value: number, alt: number) {
   return value && value > 0 ? value : alt;
 }
@@ -170,4 +149,12 @@ export function getPositiveNumber(value: number, alt: number) {
 
 export function logConstructorName() {
   console.log(`##### constructor: ${this.constructor.name} #####`);
+}
+
+
+export function convertJsonValueToStates(valueLikeJson: any, alt: State[]): State[] {
+  const value = valueLikeJson; // rename
+  const json: string = value && typeof value === 'string' ? value : null; // rename/retype
+  // console.log(json);
+  return (json ? JSON.parse(json) : alt) as State[];
 }

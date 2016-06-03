@@ -22,7 +22,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     const observables = this.stores.map(store => store.takeLatest$(_NOTIFICATION_));
     return Observable
       .merge(...observables)
-      .debounceTime(10); // あまり細かくストリームを流す必要もないのでdebounceTime
+      .debounceTime(1); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
 
