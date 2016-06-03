@@ -5,8 +5,8 @@ import levelup from 'levelup';
 const leveljs = require('level-js');
 import toastr from 'toastr';
 
-import { State, StateRule, StateRuleOptions, DisposableSubscription, SnapShot, Nameable, ReplayStreamOptions, Logger } from './store.types';
-import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState, informMix, getPositiveNumber } from './store.helpers';
+import { State, StateRule, StateRuleOptions, DisposableSubscription, SnapShot, Nameable, ReplayStreamOptions, Logger } from './store.type';
+import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState, informMix, getPositiveNumber, logConstructorName } from './store.helper';
 
 // const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
@@ -50,6 +50,7 @@ export class Store {
     devMode?: boolean;
     useToastr?: boolean;
   }) {
+    logConstructorName.call(this);
     const {autoRefresh, devMode, useToastr} = options || { autoRefresh: false, devMode: false, useToastr: false };
     this.storeKey = storeKey || '__default__';
     this.dbStatesKey = LEVELDB_KEY + '-' + this.storeKey;

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs/Rx';
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page6Service, Page6State } from './page6.service';
 
+
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
 @Component({
@@ -30,12 +31,15 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
     private state: Page6State,
     private cd: ChangeDetectorRef
   ) { }
+  
   ngOnInit() {
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
-  registerSubscriptionsEveryActivate() { }
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() { }
+
 
   // Falcorのように一度取得したデータはキャッシュされ、次回はキャッシュから取得する。
   requestWiki() {
@@ -46,11 +50,14 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
       .subscribe(() => this.cd.markForCheck());
   }
 
-  get title() { return this.state.title; }
 
   clearState() {
     this.service.clearAllStatesAndAllStorages();
   }
+
+
+  get title() { return this.state.title; }
+
 
   private keyword: string;
   private _$result: any;

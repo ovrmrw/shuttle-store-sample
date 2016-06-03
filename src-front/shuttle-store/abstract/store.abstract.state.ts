@@ -1,5 +1,7 @@
-import { Store } from './store';
+import { Store } from '../store';
 import lodash from 'lodash';
+
+import { logConstructorName } from '../store.helper';
 
 export type StoreMulti = Store | Store[];
 
@@ -16,6 +18,7 @@ export abstract class AbstractStoreState {
   constructor(
     private storeMulti: StoreMulti
   ) {
+    logConstructorName.call(this);
     this.mainStore = storeMulti instanceof Array ? storeMulti[0] : storeMulti;
 
     if (storeMulti instanceof Array) {

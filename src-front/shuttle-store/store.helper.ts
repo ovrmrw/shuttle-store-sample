@@ -1,7 +1,7 @@
 import lodash from 'lodash';
 
 import { Store, DEFAULT_LIMIT } from './store';
-import { State, Nameable } from './store.types';
+import { State, Nameable } from './store.type';
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -165,4 +165,9 @@ export function informMix(message: string, store: Store, toastrFn?: Function, al
 
 export function getPositiveNumber(value: number, alt: number) {
   return value && value > 0 ? value : alt;
+}
+
+
+export function logConstructorName() {
+  console.log(`##### constructor: ${this.constructor.name} #####`);
 }

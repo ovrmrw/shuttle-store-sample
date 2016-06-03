@@ -42,6 +42,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     private state: Page4State,
     private cd: ChangeDetectorRef
   ) { }
+
   ngOnInit() {
     // c3のグラフを準備する。
     this.chart = c3.generate({
@@ -60,15 +61,18 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       data: { columns: [['diff_time']] },
       axis: { x: { type: 'category' } },
     });
-    // -----
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+
+
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
+
   ngAfterViewInit() {
     document.getElementById('keyinput').focus();
   }
 
-  registerSubscriptionsEveryActivate() {
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() {
     let previousTime: number;
     let previousKeyCode: number;
 
@@ -129,7 +133,6 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     ];
   }
 
-  get title() { return this.state.title; }
 
   startTimer(): number {
     if (!this.proccessing) {
@@ -142,6 +145,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     }
     return this.startTime;
   }
+
 
   stopTimer(valid?: boolean): void {
     if (this.proccessing) {
@@ -160,6 +164,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     }
   }
 
+
   startTruetimeReplay() {
     this.service.disposableSubscription = this.state.keyInputsReplayStream$$
       .do(objs => {
@@ -177,11 +182,16 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
       .subscribe(() => this.cd.markForCheck());
   }
 
-  get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
 
   clearState() {
     this.service.clearAllStatesAndAllStorages();
   }
+
+
+  get title() { return this.state.title; }
+
+  get result() { return (this.startTime && this.endTime) ? '' + ((this.endTime - this.startTime) / 1000) + 's' : null; }
+
 
   text: string;
   textFinished: string;

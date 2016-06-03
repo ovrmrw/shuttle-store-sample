@@ -2,8 +2,8 @@ import { ChangeDetectorRef } from '@angular/core';
 import { Observable, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
-import { Store, _NOTIFICATION_ } from './store';
-import { AbstractStoreState, StoreMulti } from './store.parent.state';
+import { Store, _NOTIFICATION_ } from '../store';
+import { AbstractStoreState, StoreMulti } from './store.abstract.state';
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
 const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
@@ -39,7 +39,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
   // ComponentのngOnInitで呼び出される。
   // 前回登録したSubscriptionを全てunsubscribeし、新たにStoreのStateUpdateをComponentに通知するストリームを登録する。
   // これによりStoreに何か変更があったときにViewを更新することができる。
-  initializeSubscriptionsOnInit(cd: ChangeDetectorRef) {
+  initializeWatchingSubscriptionsBeforeRegisterOnInit(cd?: ChangeDetectorRef) {
     this.mainStore.disposeSubscriptions([this]);
     if (cd) {
       this.disposableSubscription = this.storeNotificator$$.subscribe(() => cd.markForCheck());

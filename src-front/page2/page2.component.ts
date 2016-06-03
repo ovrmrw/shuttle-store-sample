@@ -3,6 +3,7 @@ import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page2Service, Page2State } from './page2.service';
 
+
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
 @Component({
@@ -32,12 +33,14 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
     private state: Page2State,
     private cd: ChangeDetectorRef
   ) { }
+
   ngOnInit() {
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
-  registerSubscriptionsEveryActivate() {
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       this.state.titles$
@@ -62,11 +65,14 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  get title() { return this.state.title; }
 
   clearState() {
     this.service.clearAllStatesAndAllStorages();
   }
+
+
+  get title() { return this.state.title; }
+
 
   // Observableにより更新される変数なので勝手に変更しないこと。;
   private _$title: string;

@@ -5,6 +5,7 @@ import lodash from 'lodash';
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page5Service, Page5State } from './page5.service';
 
+
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
 @Component({
@@ -49,12 +50,14 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef,
     private el: ElementRef
   ) { }
+  
   ngOnInit() {
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
-  registerSubscriptionsEveryActivate() {
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
@@ -83,26 +86,31 @@ export class Page5Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  clearForm() {
-    this.service.putForm(new FormData()).then(x => x.log('Initialize Form'));
-  }
 
   rollback() {
     this.service.rollback();
   }
+  
   revertRollback() {
     this.service.revertRollback();
   }
 
-  get title() { return this.state.title; }
 
-  // このrangeを用意しておかないとtemplateでうまくngForできない。本当はこんなことしたくない。
-  get emailsRange() { return lodash.range(0, this.form.emails.length); }
+  clearForm() {
+    this.service.putForm(new FormData()).then(x => x.log('Initialize Form'));
+  }
 
   clearState() {
     this.service.clearAllStatesAndAllStorages();
   }
 
+
+  get title() { return this.state.title; }
+
+  // このrangeを用意しておかないとtemplateでうまくngForできない。本当はこんなことしたくない。
+  get emailsRange() { return lodash.range(0, this.form.emails.length); }
+  
+  
   private form: FormData;
   private _$formReplay: FormData | string;
 }

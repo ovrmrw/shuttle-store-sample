@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 import { Store } from '../shuttle-store';
 import { AppService, AppState, STORE_FORM } from '../services.ref';
-import { FormData } from './page7.component';
+import { FormData } from './page7.type';
 
 
 ////////////////////////////////////////////////////////////////////////////

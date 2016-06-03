@@ -4,6 +4,7 @@ import { Observable } from 'rxjs/Rx';
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page3Service, Page3State } from './page3.service';
 
+
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
 @Component({
@@ -28,14 +29,17 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
     private state: Page3State,
     private cd: ChangeDetectorRef
   ) { }
+  
   ngOnInit() {
     this.service.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
-    // -----
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+
+
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
-  registerSubscriptionsEveryActivate() {
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       Observable.interval(1000)
@@ -46,7 +50,9 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
+
   get title() { return this.state.title; }
+
 
   str_global: string;
   num: number;

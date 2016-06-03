@@ -5,6 +5,8 @@ import lodash from 'lodash';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page7Service, Page7State } from './page7.service';
+import { FormData, FormControl } from './page7.type';
+
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
@@ -58,12 +60,14 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
     private cd: ChangeDetectorRef,
     private el: ElementRef
   ) { }
+  
   ngOnInit() {
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
-  registerSubscriptionsEveryActivate() {
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
@@ -100,32 +104,36 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  clearForm() {
-    this.service.putForm(new FormData()).then(x => x.log('Initialize Form'));
-  }
 
   rollback() {
     this.service.rollback();
   }
+  
   revertRollback() {
     this.service.revertRollback();
   }
+
+
+  clearForm() {
+    this.service.putForm(new FormData()).then(x => x.log('Initialize Form'));
+  }
+
+  clearState() {
+    this.service.clearAllStatesAndAllStorages();
+  }
+
 
   get title() { return this.state.title; }
 
   // このrangeを用意しておかないとtemplateでうまくngForできない。本当はこんなことしたくない。
   get emailsRange() { return lodash.range(0, this.form.emails.length); }
 
-  clearState() {
-    this.service.clearAllStatesAndAllStorages();
-  }
 
-  private form: FormData;
-  private _$formJson: string;
-
-  private ctrl: FormControl = new FormControl();
-  private emailsCtrlArray = new ControlArray(this.ctrl.emails); // formGroupの外に定義していないと動的に入力欄の数を変更できない。
-  private formGroup = new ControlGroup({ // 最終的にこの形でデータを取得することができる。
+  ctrl: FormControl = new FormControl();
+  
+  emailsCtrlArray = new ControlArray(this.ctrl.emails); // formGroupの外に定義していないと動的に入力欄の数を変更できない。
+  
+  formGroup = new ControlGroup({ // 最終的にこの形でデータを取得することができる。
     person: new ControlGroup({
       name: new ControlGroup({
         first: this.ctrl.firstName,
@@ -144,56 +152,8 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
     }),
     emails: this.emailsCtrlArray, // ここはControlArrayでなければならない。Controlの配列ではNG。
   });
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// FormData Class
-export class FormData implements FormControlable {
-  firstName: string;
-  lastName: string;
-  age: number;
-  address: AddressData = new AddressData();
-  tel: string;
-  fax: string;
-  gender: string;
-  emails: string[] = [''];
-}
-class AddressData {
-  zipCode: string;
-  street: string;
-}
-
-///////////////////////////////////////////////////////////////////////////////////
-// FormControl Class
-class FormControl implements FormControlable {
-  firstName = new Control('', Validators.required);
-  lastName = new Control('', Validators.required);
-  age = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9]+')]));
-  gender = new Control('', Validators.required);
-  tel = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9\-]+')]));
-  fax = new Control('', Validators.compose([Validators.required, Validators.pattern('[0-9\-]+')]));
-  emails = [new Control('', Validators.minLength(5))]; // ここはControlの配列でなければならない。ControlArrayはNG。
-  address = new AddressControl();
-}
-class AddressControl {
-  zipCode = new Control('', Validators.required);
-  street = new Control('', Validators.required);
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// Interfaces
-interface FormControlable {
-  firstName: string | Control;
-  lastName: string | Control;
-  age: number | Control;
-  address: {
-    zipCode: string | Control;
-    street: string | Control;
-  };
-  tel: string | Control;
-  fax: string | Control;
-  gender: string | Control;
-  emails: string[] | Control[];
+  
+  
+  private form: FormData;
+  private _$formJson: string;
 }

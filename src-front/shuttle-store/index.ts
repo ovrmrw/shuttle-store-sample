@@ -1,4 +1,4 @@
 export { Store } from './store';
-export { AbstractStoreService } from './store.parent.service';
-export { AbstractStoreState } from './store.parent.state';
+export { AbstractStoreService } from './abstract/store.abstract.service';
+export { AbstractStoreState } from './abstract/store.abstract.state';
 export { ComponentGuidelineUsingStore } from './store.interface';

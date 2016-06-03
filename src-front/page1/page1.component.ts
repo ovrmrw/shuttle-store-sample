@@ -1,7 +1,10 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, provide } from '@angular/core';
 import { OnActivate } from '@angular/router-deprecated';
+import jQuery from 'jquery';
+
 import { Store, ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page1Service, Page1State } from './page1.service';
+
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
@@ -15,7 +18,7 @@ import { Page1Service, Page1State } from './page1.service';
     <hr />
     <h3>Settings</h3>
     <div>Title: <input type="text" [(ngModel)]="title" /></div>
-    <div>Color: <input type="text" [(ngModel)]="color" /><button (click)="setColor()">Push</button></div>    
+    <div>Color: <input type="text" #color /><button (click)="setColor(color)">Push</button></div>    
     <hr />
     <h3>Replay</h3>
     <div>{{_$title}}</div>
@@ -32,12 +35,14 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
     private state: Page1State,
     private cd: ChangeDetectorRef
   ) { }
+
   ngOnInit() {
-    this.service.initializeSubscriptionsOnInit(this.cd); // registerSubscriptionsの前に、登録済みのsubscriptionを全て破棄する。
-    this.registerSubscriptionsEveryActivate(); // ページ遷移入の度にsubscriptionを作成する。
+    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
-  registerSubscriptionsEveryActivate() {
+
+  registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.disposableSubscriptions = [
       this.state.titles$
@@ -54,19 +59,24 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
     ];
   }
 
-  set title(data: string) { this.service.putTitle(data).then(x => x.log('Title')); }
-  get title() { return this.state.title; }
 
-  color: string;
-
-  setColor() {
-    this.service.putColor(this.color).then(x => x.log('Color'));
-    this.color = '';
+  setColor(el: HTMLInputElement) {    
+    this.service.putColor(el.value).then(x => x.log('Color'));
+    el.value = '';
   }
+
 
   clearState() {
     this.service.clearAllStatesAndAllStorages();
   }
+
+
+  set title(data: string) { this.service.putTitle(data).then(x => x.log('Title')); }
+  get title() { return this.state.title; }
+
+
+  // color: string;
+
 
   // Observableにより更新される変数なので勝手に変更しないこと。;
   private _$title: string;
