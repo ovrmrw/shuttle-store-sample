@@ -150,7 +150,7 @@ export class Store {
 
           // localStorageを変更してwindowの"storage"イベントを発火させる。
           new Promise(resolve => {
-            window.localStorage.setItem(this.levelupStatesKey, String(lodash.now()));
+            window.localStorage.setItem(this.storeKey, String(lodash.now()));
             resolve();
           });
         } catch (err) {
@@ -492,13 +492,13 @@ export class Store {
   }
 
 
-  refresh(force?: boolean): Promise<Logger> {
+  refresh(storeKey?: string): Promise<Logger> {
     return new Promise<Logger>((resolve, reject) => {
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupOsnKey, (err, value) => {
         if (err) { console.log(err); }
         const osn: number = value ? Number(value) : null; // rename/retype        
-        if (this.osnLatest !== osn || force) {
+        if (this.osnLatest !== osn || storeKey === this.storeKey) {
           // this.informMix(`osn diff detected: osn on memory -> ${this.osnLatest}, osn on DB -> ${osn}`);
           if (this.enableAutoRefresh) {
             console.time('refresh');
