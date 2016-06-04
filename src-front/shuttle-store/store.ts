@@ -111,7 +111,7 @@ export class Store {
       .subscribe(newState => {
         if (newState instanceof State) { // nullがthis.statesにpushされないように制御する。
           this.states.push(newState);
-          this.snapShots = []; // this.statesに新しい値がpushされたらsnapshotsは初期化する。       
+          this.snapShots = []; // this.statesに新しい値がpushされたらsnapshotsは初期化する。
         }
         this.states = gabageCollectorFastTuned(this.states);
         // console.log('↓ states array on Store ↓');
@@ -146,6 +146,12 @@ export class Store {
           db.batch(ops, (err) => {
             if (err) { console.log(err); }
             console.timeEnd('IndexedDB(level-js)SetItem');
+          });
+
+          // localStorageを変更してwindowの"storage"イベントを発火させる。
+          new Promise(resolve => {
+            window.localStorage.setItem(this.levelupStatesKey, String(lodash.now()));
+            resolve();
           });
         } catch (err) {
           console.log(err);
@@ -261,15 +267,20 @@ export class Store {
             this.informMix('osnLatest: ' + this.osnLatest);
           });
 
-          const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
-          if (state.rule && state.rule.lock) { this.informMix(`State(${identifier}) is locked.`, toastr.info, alert); }
+          const newState = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
+          if (newState.rule && newState.rule.lock) { // lockされたことを通知する。
+            this.informMix(`State(${identifier}) is locked.`, toastr.info, alert);
+          }
+          if (newState.rule && newState.rule.duration) { // durationが経過した後にNotificationを送る。
+            setTimeout(() => this.putNewNotification('timer', 'Timer invoked by duration time'), newState.rule.duration);
+          }
 
           if (!this.isSuspending) {
-            this.dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+            this.dispatcher$.next(newState); // dispatcherをsubscribeしている全てのSubscriberをキックする。
           } else { // サスペンドモードのとき。
-            this.tempStates.push(state);
+            this.tempStates.push(newState);
           }
-          resolve(new Logger(state, this));
+          resolve(new Logger(newState, this));
         } else {
           const message = this.informMix(`State(${identifier}) is already locked!`, toastr.error, alert);
           resolve(new Logger(message, this));
@@ -481,14 +492,14 @@ export class Store {
   }
 
 
-  refresh(): Promise<Logger> {
+  refresh(force?: boolean): Promise<Logger> {
     return new Promise<Logger>((resolve, reject) => {
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupOsnKey, (err, value) => {
         if (err) { console.log(err); }
         const osn: number = value ? Number(value) : null; // rename/retype        
-        if (this.osnLatest !== osn) {
-          this.informMix(`osn diff detected: osn on memory -> ${this.osnLatest}, osn on DB -> ${osn}`);
+        if (this.osnLatest !== osn || force) {
+          // this.informMix(`osn diff detected: osn on memory -> ${this.osnLatest}, osn on DB -> ${osn}`);
           if (this.enableAutoRefresh) {
             console.time('refresh');
             try { // IndexedDB(level-js)からデータを取得する。        
@@ -538,6 +549,6 @@ export class Store {
   }
 
   private putNewNotification(value: any, message?: string) {
-    this.put(value, _NOTIFICATION_, { limit: 1 }).then(x => message ? x.log(message) : undefined);
+    this.put(value, _NOTIFICATION_, { limit: 100 }).then(x => message ? x.log(message) : undefined);
   }
 }

@@ -67,11 +67,24 @@ export abstract class AbstractStoreControllerBase {
   private addEventListnerForAutoRefreshState(): void {
     if (AbstractStoreControllerBase.isFirstLoad) {
       try {
+        // ブラウザタブ切り替えで入ったときに発火するイベント。
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
-            // this.store.refresh().then(x => x.log('View State Refresh'));
             this.stores.forEach(store => {
               store.refresh().then(x => x.log('View State Refresh Request'));
+            });
+          }
+        }, false);
+      } catch (err) {
+        console.log(err);
+      }
+
+      try {
+        // LocalStorageに変更があったときに発生するイベント。タブ切り替えをしていなくても発火する。こちらはrefreshをforce=trueで実行する。
+        window.addEventListener('storage', (event) => {
+          if (document.visibilityState === 'visible') {
+            this.stores.forEach(store => {
+              store.refresh(true).then(x => x.log('View State Refresh Request'));
             });
           }
         }, false);

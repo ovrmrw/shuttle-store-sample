@@ -84,7 +84,7 @@ export function gabageCollectorFastTuned(states: State[]): State[] {
 
     // durationルールが指定されている場合、durationを過ぎていないものだけ抽出する。
     const now = lodash.now();
-    objs = objs.filter(obj => obj.rule && obj.rule.duration ? now - obj.timestamp < obj.rule.duration : true);
+    objs = objs.filter(obj => obj.rule && obj.rule.duration ? obj.timestamp + obj.rule.duration > now : true);
 
     // lockルールが指定されている場合、lock=true以降の要素は排除する。
     // put関数の中で制御する。

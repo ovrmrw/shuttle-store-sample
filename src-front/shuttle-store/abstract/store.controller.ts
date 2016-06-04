@@ -19,7 +19,7 @@ export abstract class AbstractStoreController extends AbstractStoreControllerBas
   // Componentはこのストリームを受けてcd.markForCheck()すればOnPush環境でViewを動的に更新できる。  
   get storeNotificator$$() {
     // return this.mainStore.takeLatest$(_NOTIFICATION_); 
-    const observables = this.stores.map(store => store.takeLatest$(_NOTIFICATION_));
+    const observables = this.stores.map(store => store.takeLatest$<any>(_NOTIFICATION_));
     return Observable
       .merge(...observables);
       // .debounceTime(1); // あまり細かくストリームを流す必要もないのでdebounceTime
@@ -42,7 +42,10 @@ export abstract class AbstractStoreController extends AbstractStoreControllerBas
   initializeWatchingSubscriptionsBeforeRegisterOnInit(cd?: ChangeDetectorRef) {
     this.mainStore.disposeSubscriptions([this]);
     if (cd) {
-      this.disposableSubscription = this.storeNotificator$$.subscribe(() => cd.markForCheck());
+      this.disposableSubscription = this.storeNotificator$$
+      .subscribe(() => {
+        cd.markForCheck();
+      });
     }
   }
 
