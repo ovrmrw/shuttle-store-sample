@@ -19,6 +19,8 @@ AutoRefresh feature, if you switch browser tabs and show a page, Store will dete
 
 Page1 & 2 is a sample for my Store. You can see that Store keeps and returns States & States-history.
 
+Page3 is a sample of typical Increment/Decrement counter with persisting data and Undo/Redo.
+
 Page4 is a sample of Angular2 + C3. Your inputs cause the time graph change in real-time.
 
 Page5 is a sample of a bit of complex form. The Component source-code is very simple (in my opinion).

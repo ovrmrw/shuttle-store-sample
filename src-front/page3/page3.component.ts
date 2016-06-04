@@ -12,13 +12,15 @@ import { Page3Service, Page3State } from './page3.service';
   template: `
     <h2>{{title}} - PAGE3</h2>
     <hr />
-    <h3>A very simple way to save input values and load them when you re-enter this page. (NOT USING STORE, BUT JUST LOCALSTORAGE)</h3>
-    <h1>DEPRECATED</h1>
+    <p>This is a well-known typical Increment/Decrement sample with persisting data and Undo/Redo.</p>
+    <p>You can handle the counter correctly even if you straddle multi browser tab pages.</p>
     <hr />
-    <div>String: <input type="text" [(ngModel)]="str_global" />{{str_global}}</div>
-    <div>Number: <input type="text" [(ngModel)]="num" />{{num}}</div>
-    <div>Boolean: <input type="text" [(ngModel)]="bool" />{{bool}}</div>
-    <div>Any: <input type="text" [(ngModel)]="objHasValue" />{{objHasValue}}</div>    
+    <h2>{{_$counter}}</h2>
+    <button (click)="increment()">+</button>
+    <button (click)="decrement()">-</button>
+    <hr />
+    <button (click)="rollback()">Undo</button>
+    <button (click)="revertRollback()">Redo</button>
   `,
   providers: [Page3Service, Page3State],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -29,33 +31,43 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
     private state: Page3State,
     private cd: ChangeDetectorRef
   ) { }
-  
+
   ngOnInit() {
-    this.service.SC.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
-
-
-    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
-    this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd);
+    this.registerWatchingSubscriptionsAfterInitializeOnInit();
   }
 
 
   registerWatchingSubscriptionsAfterInitializeOnInit() {
-    // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.SC.disposableSubscriptions = [
-      Observable.interval(1000)
-        .subscribe(() => {
-          // inputタグの値を保存する。
-          this.service.SC.savePrimitiveValuesToLocalStorage(this, [this.service, this.state, this.cd]);
-        }),
+      this.state.counter$
+        .map(counter => counter ? counter : 0)
+        .do(counter => this._$counter = counter)
+        .subscribe(),
     ];
+  }
+
+
+  increment() {
+    this.service.putCounter(this._$counter + 1).then(x => x.log('increment'));
+  }
+
+  decrement() {
+    this.service.putCounter(this._$counter - 1).then(x => x.log('decrement'));
+  }
+
+
+  rollback() {
+    this.service.SC.rollback();
+  }
+
+  revertRollback() {
+    this.service.SC.revertRollback();
   }
 
 
   get title() { return this.state.title; }
 
 
-  str_global: string;
-  num: number;
-  bool: boolean;
-  objHasValue: any = 'default value';
+  private _$counter: number;
 }

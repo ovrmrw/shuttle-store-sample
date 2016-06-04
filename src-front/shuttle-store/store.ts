@@ -160,13 +160,19 @@ export class Store {
   }
 
 
-  // サスペンドモードから戻る
+  // サスペンドモードから戻る。osnをインクリメントしてから戻ることで状態が変更したことを知らせる。
   revertSuspend() {
     if (this.isSuspending) {
-      this.tempStates.forEach(state => this.states.push(state));
-      this.tempStates = [];
-      this.isSuspending = false;
-      this.dispatcher$.next(null);
+      this.osnLatest++; // osnをインクリメントしてサスペンドを抜ける。
+      const db = this.getLevelupInstance();
+      db.put(this.levelupOsnKey, this.osnLatest, (err) => {
+        if (err) { console.log(err); }
+
+        this.tempStates.forEach(state => this.states.push(state));
+        this.tempStates = [];
+        this.isSuspending = false;
+        this.dispatcher$.next(null);
+      });
     }
   }
 
@@ -241,7 +247,7 @@ export class Store {
         this.osnLatest = lodash.max([this.osnLatest, osn, 0]); // 最新(最大)のosnを取得する。
 
         const identifier = generateIdentifier(nameablesOrIdentifier);
-        
+
         // 直近のStateを取得し、lockされているか確認する。
         const stateLatest: State = this.takeLatestAsState(identifier) || new State();
         const isLocked: boolean = stateLatest.rule && stateLatest.rule.lock ? stateLatest.rule.lock : null;
@@ -492,7 +498,7 @@ export class Store {
 
                 const message = this.informMix('Store is now refreshed!', toastr.info);
                 console.log(message);
-                this.putNewNotification('refreshed', message); //this.put('refreshed', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
+                this.putNewNotification('refreshed', message); // this.put('refreshed', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
                 resolve(new Logger('refresh', this));
                 console.timeEnd('refresh');
               });

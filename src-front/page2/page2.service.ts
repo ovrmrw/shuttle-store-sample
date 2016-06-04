@@ -8,7 +8,8 @@ import { Identifiers } from '../services.ref';
 // Service
 @Injectable()
 export class Page2Service {
-  constructor(public SC: StoreController) { }
+  constructor(public SC: StoreController, private IR: Identifiers) { }
+  // private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
 }
 
 

@@ -98,8 +98,11 @@ export function gabageCollectorFastTuned(states: State[]): State[] {
 
     if (objs.length > limit) {
       // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));
-      // const ary = objs.reverse().slice(0, _limit).reverse(); // TODO:もっとやりようがある。
-      const ary = objs.slice(0, limit * -1);
+      
+      // console.log(objs);
+      const ary = objs.slice(objs.length - limit); // 先頭側から削除する。
+      // console.log(ary);
+      
       // let l = 0;
       for (let l = 0; l < ary.length; l = (l + 1) | 0) {
         newObjs.push(ary[l]);
@@ -150,7 +153,7 @@ export function compareIdentifiers(nameablesOrIdentifier1: NameablesOrIdentifier
   const identifier1 = generateIdentifier(nameablesOrIdentifier1);
   const identifier2 = generateIdentifier(nameablesOrIdentifier2);
   // console.log([identifier1, identifier2]);
-  return identifier1 == identifier2 ? true : false;
+  return identifier1 === identifier2 ? true : false;
 }
 
 

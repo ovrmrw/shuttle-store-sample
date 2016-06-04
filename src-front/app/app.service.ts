@@ -6,6 +6,8 @@ export const STORE_FORM = 'form';
 export class Identifiers {
   _TITLE_ = ['app-title'];
   _COLOR_ = ['color'];
+  
+  _COUNTER_ = ['counter'];
 
   _KEYINPUT_ = ['keyinput'];
   _UNIQUEID_ = ['uniqueid'];
