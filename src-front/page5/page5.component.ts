@@ -13,9 +13,13 @@ import { Page5Service, Page5State } from './page5.service';
   template: `
     <h2>{{title}} - PAGE5</h2>
     <hr />
-    <div>ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。Email入力欄は数が動的に変化します。</div>
-    <div>Undo/Redoができます。このページだけでなくPage1のタイトル等までUndo/Redoは波及します。</div>
-    <div>複数のStoreで構成されており、ブラウザタブ切り替えをしたときにタイトルは更新されますがフォームは勝手に更新されないようになっています。</div>
+    <p>(English) The Form sample which keeps the data you input even if page reload or page move happens.</p>
+    <p>You can use Undo/Redo feature which affects not only this page but also, for instance the Title field of Page1.</p>
+    <p>This page consists of the Multi Stores. In the Angular2 DI space, there are not a Store instance but three Store instances.</p>
+    <p>Due to the Multi Stores, you can enable the Auto-Refresh feature of the Store individually.</p> 
+    <p>(Japanese) ページ遷移してもリロードしても入力した値を失わないフォームのサンプル。Email入力欄は数が動的に変化します。</p>
+    <p>Undo/Redoができます。このページだけでなくPage1のタイトル等までUndo/Redoは波及します。</p>
+    <p>複数のStoreで構成されており、ブラウザタブ切り替えをしたときにタイトルは更新されますがフォームは勝手に更新されないようになっています。</p>
     <hr />
     <div>FirstName: <input type="text" [(ngModel)]="form.firstName" /></div>
     <div>LastName: <input type="text" [(ngModel)]="form.lastName" /></div>

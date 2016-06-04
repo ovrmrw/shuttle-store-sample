@@ -6,10 +6,11 @@ const leveljs = require('level-js');
 import toastr from 'toastr';
 
 import { State, StateRule, StateRuleOptions,
-  DisposableSubscription, SnapShot, Nameable,
+  DisposableSubscription, SnapShot, NameablesOrIdentifier,
   ReplayStreamOptions, Logger } from './store.type';
 import { generateIdentifier, gabageCollectorFastTuned, pluckValueFromState,
-  getPositiveNumber, logConstructorName, convertJsonValueToStates } from './store.helper';
+  getPositiveNumber, logConstructorName, convertJsonValueToStates,
+  compareIdentifiers } from './store.helper';
 
 // const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage-store';
 const LEVELDB_NAME = 'ovrmrw-shuttle-store';
@@ -229,7 +230,7 @@ export class Store {
 
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
-  put(data: any, nameablesAsIdentifier: Nameable[], ruleOptions?: StateRuleOptions): Promise<Logger> {
+  put(data: any, nameablesOrIdentifier: NameablesOrIdentifier, ruleOptions?: StateRuleOptions): Promise<Logger> {
     if (!this.isReady) { return Promise.resolve(new Logger('Error: States on Store are not loaded yet.', this)); }
     console.time('put(setState)');
     return new Promise<Logger>(resolve => {
@@ -239,15 +240,15 @@ export class Store {
         const osn = Number(value); // rename/retype
         this.osnLatest = lodash.max([this.osnLatest, osn, 0]); // 最新(最大)のosnを取得する。
 
-        // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
-        if (nameablesAsIdentifier !== _NOTIFICATION_) { this.osnLatest++; }
-
-        const identifier = generateIdentifier(nameablesAsIdentifier);
-
-        const stateLatest: State = this.takeLatestAsState(nameablesAsIdentifier) || new State();
+        const identifier = generateIdentifier(nameablesOrIdentifier);
+        
+        // 直近のStateを取得し、lockされているか確認する。
+        const stateLatest: State = this.takeLatestAsState(identifier) || new State();
         const isLocked: boolean = stateLatest.rule && stateLatest.rule.lock ? stateLatest.rule.lock : null;
 
         if (!isLocked) { // Stateに既にlockルールが適用されている場合は追加しない。          
+          // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。  
+          if (!compareIdentifiers(identifier, _NOTIFICATION_)) { this.osnLatest++; }
           // osnをLevelDBにWriteする。
           db.put(this.levelupOsnKey, this.osnLatest, (err) => {
             if (err) { console.log(err); }
@@ -274,25 +275,26 @@ export class Store {
   setState = this.put;
 
 
-  takeMany<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): T[] {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
+  takeMany<T>(nameablesOrIdentifier: NameablesOrIdentifier, limit: number = DEFAULT_LIMIT): T[] {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
     const _limit = getPositiveNumber(limit, DEFAULT_LIMIT); // limit && limit > 0 ? limit : DEFAULT_LIMIT;
     const values = this.states
       .filter(state => state && state.key === identifier)
       .map(state => pluckValueFromState<T>(state));
-    let results: T[];
-    if (values.length > 0) {
-      results = values.slice(values.length - _limit); // 配列の先頭側から要素を削除する。
-    } else {
-      results = [];
-    }
-    return lodash.cloneDeep(results).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+    // let results: T[];
+    // if (values.length > 0) {
+    //   results = values.slice(values.length - _limit); // 配列の先頭側から要素を削除する。
+    // } else {
+    //   results = [];
+    // }
+    const valuesSliced = values.length > 0 ? values.slice(values.length - _limit) /* 配列の先頭側から要素を削除する */ : values;
+    return lodash.cloneDeep(valuesSliced).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
   getStates = this.takeMany;
 
 
-  takeLatest<T>(nameablesAsIdentifier: Nameable[], alternative?: any): T {
-    const values = this.takeMany<T>(nameablesAsIdentifier, 1);
+  takeLatest<T>(nameablesOrIdentifier: NameablesOrIdentifier, alternative?: any): T {
+    const values = this.takeMany<T>(nameablesOrIdentifier, 1);
     const _alt: T = lodash.isUndefined(alternative) ? null : alternative;
     const value = values && values.length > 0 ? values[0] : _alt;
     return value;
@@ -300,32 +302,24 @@ export class Store {
   getState = this.takeLatest;
 
 
-  private takeManyAsState(nameablesAsIdentifier: Nameable[]): State[] {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
+  private takeManyAsState(nameablesOrIdentifier: NameablesOrIdentifier, limit: number = DEFAULT_LIMIT): State[] {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
+    const _limit = getPositiveNumber(limit, DEFAULT_LIMIT); // limit && limit > 0 ? limit : DEFAULT_LIMIT;
     const states = this.states
       .filter(state => state && state.key === identifier);
-    return lodash.cloneDeep(states).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+    const statesSliced = states.length > 0 ? states.slice(states.length - _limit) /* 配列の先頭側から要素を削除する */ : states;
+    return lodash.cloneDeep(statesSliced).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
   }
 
 
-  private takeLatestAsState(nameablesAsIdentifier: Nameable[]): State {
-    const states = this.takeManyAsState(nameablesAsIdentifier);
+  private takeLatestAsState(nameablesOrIdentifier: NameablesOrIdentifier): State {
+    const states = this.takeManyAsState(nameablesOrIdentifier, 1);
     return states && states.length > 0 ? states[0] : null;
   }
 
 
-  private takeManyAsState$(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<State[]> {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
-    const _limit = getPositiveNumber(limit, DEFAULT_LIMIT); // limit && limit > 0 ? limit : DEFAULT_LIMIT;
-    return this.returner$
-      .map(states => states.filter(obj => obj && obj.key === identifier))
-      .map(states => states.slice(states.length - _limit)) // 配列の先頭側から要素を削除する。
-      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
-  }
-
-
-  takeMany$<T>(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<T[]> {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
+  takeMany$<T>(nameablesOrIdentifier: NameablesOrIdentifier, limit: number = DEFAULT_LIMIT): Observable<T[]> {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
     const _limit = getPositiveNumber(limit, DEFAULT_LIMIT); // limit && limit > 0 ? limit : DEFAULT_LIMIT;
     return this.returner$
       .map(states => states.filter(obj => obj && obj.key === identifier))
@@ -336,16 +330,32 @@ export class Store {
   getStates$ = this.takeMany$;
 
 
-  takeLatest$<T>(nameablesAsIdentifier: Nameable[], alternative?: any): Observable<T> {
+  takeLatest$<T>(nameablesOrIdentifier: NameablesOrIdentifier, alternative?: any): Observable<T> {
     const _alt: T = lodash.isUndefined(alternative) ? null : alternative;
-    return this.takeMany$<T>(nameablesAsIdentifier, 1)
+    return this.takeMany$<T>(nameablesOrIdentifier, 1)
       .map(values => values.length > 0 ? values[0] : _alt);
   }
   getState$ = this.takeLatest$;
 
 
-  unlockState(nameablesAsIdentifier: Nameable[]): Promise<Logger> {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
+  private takeManyAsState$(nameablesOrIdentifier: NameablesOrIdentifier, limit: number = DEFAULT_LIMIT): Observable<State[]> {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
+    const _limit = getPositiveNumber(limit, DEFAULT_LIMIT); // limit && limit > 0 ? limit : DEFAULT_LIMIT;
+    return this.returner$
+      .map(states => states.filter(obj => obj && obj.key === identifier))
+      .map(states => states.slice(states.length - _limit)) // 配列の先頭側から要素を削除する。
+      .map(states => lodash.cloneDeep(states).reverse()); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+  }
+
+
+  private takeLatestAsState$(nameablesOrIdentifier: NameablesOrIdentifier): Observable<State> {
+    return this.takeManyAsState$(nameablesOrIdentifier, 1)
+      .map(states => states.length > 0 ? states[0] : null);
+  }
+
+
+  unlockState(nameablesOrIdentifier: NameablesOrIdentifier): Promise<Logger> {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
     this.states
       .filter(state => state && state.key === identifier)
       .filter(state => state.rule && state.rule.lock)
@@ -360,11 +370,11 @@ export class Store {
   // input: [e,c,a]
   // output: |--a--c--e-->
   // output: |--e--c--a--> (if descending is true)
-  takePresetReplayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T> {
+  takePresetReplayStream$<T>(nameablesOrIdentifier: NameablesOrIdentifier, options?: ReplayStreamOptions): Observable<T> {
     const {limit, interval, descending, truetime } = options;
     const _interval = getPositiveNumber(interval, DEFAULT_INTERVAL); // interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     let previousTime: number;
-    return this.takeManyAsState$(nameablesAsIdentifier, limit)
+    return this.takeManyAsState$(nameablesOrIdentifier, limit)
       .map(states => states.length > 0 ? states : [new State()]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
       .do(states => previousTime = states[0].timestamp) // previousTimeをセットする。
@@ -391,12 +401,12 @@ export class Store {
   // input: [e,c,a]
   // output: |--[a]--[a,c]--[a,c,e]-->
   // output: |--[e]--[e,c]--[e,c,a]--> (if descending is true)
-  takePresetReplayArrayStream$<T>(nameablesAsIdentifier: Nameable[], options?: ReplayStreamOptions): Observable<T[]> {
+  takePresetReplayArrayStream$<T>(nameablesOrIdentifier: NameablesOrIdentifier, options?: ReplayStreamOptions): Observable<T[]> {
     const {limit, interval, descending, truetime } = options;
     const _interval = getPositiveNumber(interval, DEFAULT_INTERVAL); // interval && interval > 0 ? interval : DEFAULT_INTERVAL;
     let ary: State[];
     let previousTime: number;
-    return this.takeManyAsState$(nameablesAsIdentifier, limit)
+    return this.takeManyAsState$(nameablesOrIdentifier, limit)
       .map(states => states.length > 0 ? states : [new State()]) // objsが空配列だとsubscribeまでストリームが流れないのでnull配列を作る。
       .map(states => descending ? states : states.reverse())
       .do(states => previousTime = states[0].timestamp) // previousTimeをセットする。
@@ -425,15 +435,15 @@ export class Store {
   getPresetReplayArrayStream$ = this.takePresetReplayArrayStream$;
 
 
-  setDisposableSubscription(subscription: Subscription, nameablesAsIdentifier: Nameable[]): void {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
+  setDisposableSubscription(subscription: Subscription, nameablesOrIdentifier: NameablesOrIdentifier): void {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
     const obj = new DisposableSubscription({ key: identifier, value: subscription });
     this.subscriptions.push(obj);
   }
 
 
-  disposeSubscriptions(nameablesAsIdentifier: Nameable[] = [this]): void {
-    const identifier = generateIdentifier(nameablesAsIdentifier);
+  disposeSubscriptions(nameablesOrIdentifier: NameablesOrIdentifier = [this]): void {
+    const identifier = generateIdentifier(nameablesOrIdentifier);
     this.subscriptions
       .filter(obj => obj && obj.key === identifier)
       .map(obj => obj.value)
@@ -478,8 +488,6 @@ export class Store {
             try { // IndexedDB(level-js)からデータを取得する。        
               db.get(this.levelupStatesKey, (err, value) => {
                 if (err) { console.log(err); }
-                // const json: string = value && typeof value === 'string' ? value : null; // rename/retype
-                // this.states = json ? JSON.parse(json) : this.states;
                 this.states = convertJsonValueToStates(value, this.states);
 
                 const message = this.informMix('Store is now refreshed!', toastr.info);

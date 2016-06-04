@@ -11,14 +11,16 @@ import { Page2Service, Page2State } from './page2.service';
   template: `
     <h2>{{title}} - PAGE2</h2>
     <hr />
-    <div>Page1で入力した値をリプレイします。これはTrue-time ReplayなのでPage1とは違い"実時間を再現した"リプレイとなります。</div>
-    <div>リプレイは通常は昇順方向に展開しますが、降順(Reverse)も簡単にできます。</div>
+    <p>(English) This page show you the True-time Replay of the States which you input in the Page1.</p>
+    <p>Although the True-time Replay is playing forwards usually, you can also play it backwards(reverse).</p> 
+    <p>(Japanese) Page1で入力した値をリプレイします。これはTrue-time ReplayなのでPage1とは違い"実時間を再現した"リプレイとなります。</p>
+    <p>リプレイは通常は昇順方向に展開しますが、降順(Reverse)も簡単にできます。</p>
     <hr />
     <h3>True-time Replay</h3>
     <div>{{_$title}}</div>
     <div><ul><li *ngFor="let color of _$colors"><span [style.background-color]="color">{{color}}</span></li></ul></div>
     <hr />
-    <h3>True-time Replay (Reverse)</h3>
+    <h3>True-time Replay (reverse)</h3>
     <div>{{_$titleDesc}}</div>
     <div><ul><li *ngFor="let color of _$colorsDesc"><span [style.background-color]="color">{{color}}</span></li></ul></div>
     <hr />

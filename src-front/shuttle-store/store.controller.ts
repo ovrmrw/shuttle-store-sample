@@ -6,5 +6,5 @@ import { AbstractStoreController } from './abstract/store.controller';
 
 @Injectable()
 export class StoreController extends AbstractStoreController {
-  constructor(store: Store) { super(store); }
+  constructor(storeOrStores: Store) { super(storeOrStores); }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { StoreController } from '../shuttle-store';
-import { Identifier } from '../services.ref';
+import { Identifiers } from '../services.ref';
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -16,7 +16,7 @@ export class Page3Service {
 // State (Declared only getters from Store)
 @Injectable()
 export class Page3State {
-  constructor(private SC: StoreController, private IR: Identifier) { }
+  constructor(private SC: StoreController, private IR: Identifiers) { }
   private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
 
   get title() { return this.mainStore.takeLatest<string>(this.IR._TITLE_); }

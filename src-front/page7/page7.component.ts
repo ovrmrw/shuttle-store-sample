@@ -15,9 +15,11 @@ import { FormData, FormControl } from './page7.type';
   template: `
     <h2>{{title}} - PAGE7</h2>
     <hr />
-    <div>Page5のフォームをControl,ControlArray,ControlGroup,Validatorsを使って書き直したものです。</div>
-    <div>(動的に入力欄の数を変更させる場合ControlArray周りが若干ややこしくなります。)</div>
-    <div>複数のStoreで構成されており、ブラウザタブ切り替えをしたときにタイトルは更新されますがフォームは勝手に更新されないようになっています。</div>    
+    <p>(English) This is a rewrite of Page5 with Validations.</p>
+    <p>This Form show you an integration "how to persist the data" and "validate the data".</p> 
+    <p>(Japanese) Page5のフォームをControl,ControlArray,ControlGroup,Validatorsを使って書き直したものです。</p>
+    <p>(動的に入力欄の数を変更させる場合ControlArray周りが若干ややこしくなります。)</p>
+    <p>複数のStoreで構成されており、ブラウザタブ切り替えをしたときにタイトルは更新されますがフォームは勝手に更新されないようになっています。</p>    
     <hr />
     <form [ngFormModel]="formGroup">
       <div ngControlGroup="person">

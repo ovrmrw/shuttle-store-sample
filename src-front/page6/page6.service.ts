@@ -4,14 +4,14 @@ import { Observable } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 import { StoreController } from '../shuttle-store';
-import { Identifier, STORE_SECOND } from '../services.ref';
+import { Identifiers, STORE_SECOND } from '../services.ref';
 
 
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
 export class Page6Service {
-  constructor(public SC: StoreController, private IR: Identifier, private jsonp: Jsonp) { }
+  constructor(public SC: StoreController, private IR: Identifiers, private jsonp: Jsonp) { }
   private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
   private secondStore = this.SC.getStoreSafely(STORE_SECOND); // Wikipediaのデータを保存するためのStore
 
@@ -43,7 +43,7 @@ export class Page6Service {
 // State (Declared only getters from Store)
 @Injectable()
 export class Page6State {
-  constructor(private SC: StoreController, private IR: Identifier) { }
+  constructor(private SC: StoreController, private IR: Identifiers) { }
   private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
 
   get title() { return this.mainStore.takeLatest<string>(this.IR._TITLE_); }

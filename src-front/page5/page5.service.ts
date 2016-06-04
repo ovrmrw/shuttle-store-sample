@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 
 import { StoreController } from '../shuttle-store';
-import { Identifier, STORE_FORM } from '../services.ref';
+import { Identifiers, STORE_FORM } from '../services.ref';
 import { FormData } from './page5.component';
 
 
@@ -9,7 +9,7 @@ import { FormData } from './page5.component';
 // Service
 @Injectable()
 export class Page5Service {
-  constructor(public SC: StoreController, private IR: Identifier) { }
+  constructor(public SC: StoreController, private IR: Identifiers) { }
   private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
   private formStore = this.SC.getStoreSafely(STORE_FORM); // フォームのStateを管理するためのStore
 
@@ -21,7 +21,7 @@ export class Page5Service {
 // State (Declared only getters from Store)
 @Injectable()
 export class Page5State {
-  constructor(private SC: StoreController, private IR: Identifier) { }
+  constructor(private SC: StoreController, private IR: Identifiers) { }
   private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
   private formStore = this.SC.getStoreSafely(STORE_FORM); // フォームのStateを管理するためのStore
 

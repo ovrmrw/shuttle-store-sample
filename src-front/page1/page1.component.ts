@@ -12,8 +12,11 @@ import { Page1Service, Page1State } from './page1.service';
   template: `
     <h2>{{title}} - PAGE1</h2>
     <hr />
-    <div>ここで入力したタイトルは全てのページで使われます。</div>
-    <div>Colorはどんどんリストに追加されていきますが、30秒経過すると次のStore更新時に消えるようになっています。</div>
+    <p>(English) The Title you input in this page will be used every other pages.</p>
+    <p>You can not only Lock the states and also Unlock them.</p>
+    <p>The Color will be pushed to the Store as States next by next, and delete themselves after 30 seconds by the rule of the Duration.</p>  
+    <p>(Japanese) ここで入力したタイトルは全てのページで使われます。</p>
+    <p>Colorはどんどんリストに追加されていきますが、30秒経過すると次のStore更新時に消えるようになっています。</p>    
     <hr />
     <h3>Settings</h3>
     <div>Title: <input type="text" [(ngModel)]="title" /><button (click)="lockTitle()">Lock Title</button><button (click)="unlockTitle()">Unlock Title</button></div>

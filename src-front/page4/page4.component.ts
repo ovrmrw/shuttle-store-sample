@@ -9,6 +9,7 @@ import { Page4Service, Page4State } from './page4.service';
 import { KeyInput } from '../types.ref';
 export { KeyInput };
 
+
 ///////////////////////////////////////////////////////////////////////////////////
 // Main Component
 @Component({
@@ -16,8 +17,10 @@ export { KeyInput };
   template: `
     <h2>{{title}} - PAGE4</h2>
     <hr />
-    <div>Aを押すとグラフ描画が始まり、Zを押すと終わる。AからZまでの入力速度を計るようにしたい。グラフY軸の単位は秒。実装中。</div>
-    <div>「Start True-time Replay」をクリックして始まるリプレイは"実時間を再現した"リプレイです。</div>
+    <p>(English) Push "A" key to start the game, and "Z" key to finish. This page measures your key input speed from A to Z.</p>
+    <p>Click "Start True-time Replay" button to play the True-time Replay.</p>
+    <p>(Japanese) Aを押すとグラフ描画が始まり、Zを押すと終わる。AからZまでの入力速度を計るようにしたい。グラフY軸の単位は秒。</p>
+    <p>「Start True-time Replay」をクリックして始まるリプレイは"実時間を再現した"リプレイです。</p>
     <hr />
     <div>Input A～Z: <input type="text" [(ngModel)]="text" id="keyinput" /></div>
     <div *ngIf="textFinished">Finished: {{textFinished}}</div>
@@ -154,7 +157,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
         this.endTime = lodash.now();
         this.textFinished = this.text;
         this.textMissed = null;
-        toastr.success('COMPLETED! ' + this.result + '\nLet\'s watch True-time Replay.'); // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
+        toastr.success('PERFECT! ' + this.result + '\nLet\'s watch True-time Replay.'); // alert('COMPLETED! ' + this.result + "\nLet's watch True-time Replay.");
         this.startTruetimeReplay();
       } else {
         this.textMissed = this.text;

@@ -3,7 +3,7 @@ export const STORE_SECOND = 'second';
 export const STORE_FORM = 'form';
 
 
-export class Identifier {
+export class Identifiers {
   _TITLE_ = ['app-title'];
   _COLOR_ = ['color'];
 

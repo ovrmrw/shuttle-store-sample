@@ -5,7 +5,7 @@ import { Store, DEFAULT_LIMIT } from './store';
 
 export type Nameable = Function | Object | string;
 export type SnapShot = State[];
-
+export type NameablesOrIdentifier = Nameable[] | string;
 
 ////////////////////////////////////////////////////////////////////////////
 // State Class

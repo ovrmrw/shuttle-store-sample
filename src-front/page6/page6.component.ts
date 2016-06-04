@@ -12,8 +12,10 @@ import { Page6Service, Page6State } from './page6.service';
   template: `
     <h2>{{title}} - PAGE6</h2>
     <hr />
-    <div>Wikipedia APIでキーワード検索します。初めてのときはHTTPリクエストしますが、2回目以降は同じキーワードで検索したときにキャッシュから取得するのでHTTPリクエストは発生しません。</div>
-    <div>複数のStoreが使われており、タイトルを取得しているStoreと検索結果を保存しているStoreは別々になっています。</div>
+    <p>(English) This page is a sample getting data from Wikipedia with Wikipedia-API.</p>
+    <p>If you request the same keyword more than one time, the Store returns you a result from the Store's cache to reduce HTTP requests.</p>
+    <p>(Japanese) Wikipedia APIでキーワード検索します。初めてのときはHTTPリクエストしますが、2回目以降は同じキーワードで検索したときにキャッシュから取得するのでHTTPリクエストは発生しません。</p>
+    <p>複数のStoreが使われており、タイトルを取得しているStoreと検索結果を保存しているStoreは別々になっています。</p>
     <hr />
     <div>Keyword: <input type="text" [(ngModel)]="keyword" /></div>
     <div><button (click)="requestWiki()">Wikipedia Search</button></div>

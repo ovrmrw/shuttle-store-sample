@@ -1,7 +1,7 @@
 import lodash from 'lodash';
 
 import { Store, DEFAULT_LIMIT, _NOTIFICATION_ } from './store';
-import { State, Nameable } from './store.type';
+import { State, NameablesOrIdentifier, Nameable } from './store.type';
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -121,23 +121,36 @@ export function gabageCollectorFastTuned(states: State[]): State[] {
 }
 
 
-export function generateIdentifier(nameables: Nameable[]): string {
+export function generateIdentifier(nameablesOrString: NameablesOrIdentifier): string {
   let ary: string[] = [];
 
-  nameables.reduce((p: string[], nameable) => {
-    if (nameable && typeof nameable === 'string') {
-      p.push(nameable);
-    } else if (nameable && typeof nameable === 'function') {
-      p.push(nameable.name);
-    } else if (nameable && typeof nameable === 'object') {
-      p.push(nameable.constructor.name);
-    } else {
-      p.push('###');
-    }
-    return p;
-  }, ary);
+  if (typeof nameablesOrString === 'string') {
+    const identifier: string = nameablesOrString; // rename
+    return identifier;
+  } else {
+    const nameables: Nameable[] = nameablesOrString; // rename
+    nameables.reduce((p: string[], nameable) => {
+      if (nameable && typeof nameable === 'string') {
+        p.push(nameable);
+      } else if (nameable && typeof nameable === 'function') {
+        p.push(nameable.name);
+      } else if (nameable && typeof nameable === 'object') {
+        p.push(nameable.constructor.name);
+      } else {
+        p.push('###');
+      }
+      return p;
+    }, ary);
+    return ary.join('_');
+  }
+}
 
-  return ary.join('_');
+
+export function compareIdentifiers(nameablesOrIdentifier1: NameablesOrIdentifier, nameablesOrIdentifier2: NameablesOrIdentifier): boolean {
+  const identifier1 = generateIdentifier(nameablesOrIdentifier1);
+  const identifier2 = generateIdentifier(nameablesOrIdentifier2);
+  // console.log([identifier1, identifier2]);
+  return identifier1 == identifier2 ? true : false;
 }
 
 
