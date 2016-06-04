@@ -1,5 +1,4 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
-import { Observable } from 'rxjs/Rx';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page3Service, Page3State } from './page3.service';
@@ -15,7 +14,7 @@ import { Page3Service, Page3State } from './page3.service';
     <p>This is a well-known typical Increment/Decrement sample with persisting data and Undo/Redo.</p>
     <p>You can handle the counter correctly even if you straddle multi browser tab pages.</p>
     <hr />
-    <h2>{{_$counter}}</h2>
+    <h2>{{counter | async}}</h2>
     <button (click)="increment()">+</button>
     <button (click)="decrement()">-</button>
     <hr />
@@ -38,14 +37,7 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
 
-  registerWatchingSubscriptionsAfterInitializeOnInit() {
-    this.service.SC.disposableSubscriptions = [
-      this.state.counter$
-        .map(counter => counter ? counter : 0)
-        .do(counter => this._$counter = counter)
-        .subscribe(),
-    ];
-  }
+  registerWatchingSubscriptionsAfterInitializeOnInit() { }
 
 
   increment() {
@@ -67,6 +59,12 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
 
 
   get title() { return this.state.title; }
+
+  get counter() {
+    return this.state.counter$
+      .map(counter => counter ? counter : 0)
+      .do(counter => this._$counter = counter);
+  }
 
 
   private _$counter: number;
