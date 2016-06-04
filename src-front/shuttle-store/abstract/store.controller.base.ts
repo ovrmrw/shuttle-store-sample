@@ -6,7 +6,7 @@ import { logConstructorName } from '../store.helper';
 export type StoreMulti = Store | Store[];
 
 
-export abstract class AbstractStoreState {
+export abstract class AbstractStoreControllerBase {
   // AutoRefreshStateが確実に一度だけ登録されるようにstatic変数で制御する。
   static isFirstLoad: boolean = true;
 
@@ -31,7 +31,7 @@ export abstract class AbstractStoreState {
       this.storesObject = { [store.key]: store };
       this.storesArray = [store];
     }
-    if (AbstractStoreState.isFirstLoad) {
+    if (AbstractStoreControllerBase.isFirstLoad) {
       console.log('===== storesObject =====');
       console.log(this.storesObject);
       console.log('===== storesArray =====');
@@ -40,11 +40,11 @@ export abstract class AbstractStoreState {
 
     this.addEventListnerForAutoRefreshState();
 
-    AbstractStoreState.isFirstLoad = false;
+    AbstractStoreControllerBase.isFirstLoad = false;
   }
 
 
-  getStoreSafely(key: string): Store {
+  getStoreSafely(key?: string): Store {
     // try {
     //   return key ? this.storesObject[key] : this.store;
     // } catch (err) {
@@ -65,7 +65,7 @@ export abstract class AbstractStoreState {
   // 下記によると多重にaddEventListnerしても二度目からはdiscardされるので重複はしないとのこと。
   // https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
   private addEventListnerForAutoRefreshState(): void {
-    if (AbstractStoreState.isFirstLoad) {
+    if (AbstractStoreControllerBase.isFirstLoad) {
       try {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {

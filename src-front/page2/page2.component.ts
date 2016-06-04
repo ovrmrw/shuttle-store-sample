@@ -35,14 +35,14 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
 
   ngOnInit() {
-    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
     this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
 
   registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
-    this.service.disposableSubscriptions = [
+    this.service.SC.disposableSubscriptions = [
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page2'))
         .subscribe(),
@@ -67,7 +67,7 @@ export class Page2Component implements OnInit, ComponentGuidelineUsingStore {
 
 
   clearState() {
-    this.service.clearAllStatesAndAllStorages();
+    this.service.SC.clearAllStatesAndAllStorages();
   }
 
 

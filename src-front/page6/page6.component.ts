@@ -33,7 +33,7 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
   
   ngOnInit() {
-    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
     this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
@@ -52,7 +52,7 @@ export class Page6Component implements OnInit, ComponentGuidelineUsingStore {
 
 
   clearState() {
-    this.service.clearAllStatesAndAllStorages();
+    this.service.SC.clearAllStatesAndAllStorages();
   }
 
 

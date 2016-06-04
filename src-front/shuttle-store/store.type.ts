@@ -46,12 +46,14 @@ export class StateRule {
   rollback: boolean;
   filterId: string | number;
   duration: number;
+  lock: boolean;
   constructor(options: StateRuleOptions) {
-    const {limit, rollback, filterId, duration} = options;
+    const {limit, rollback, filterId, duration, lock} = options;
     this.limit = limit && limit > 0 ? limit : DEFAULT_LIMIT;
     this.rollback = rollback ? true : false;
     this.filterId = filterId ? filterId : null;
     this.duration = duration ? duration : null;
+    this.lock = lock ? true : false;
   }
 }
 export interface StateRuleOptions {
@@ -59,6 +61,7 @@ export interface StateRuleOptions {
   rollback?: boolean;
   filterId?: string | number;
   duration?: number;
+  lock?: boolean;
 }
 
 
@@ -67,7 +70,7 @@ export interface StateRuleOptions {
 export class Logger {
   constructor(private state: State | string, private _store?: Store) { }
 
-  log(message?: string): any {
+  log(message?: string): void {
     const obj = Object.keys(this).reduce((p, key) => { // インスタンス変数が畳み込みの対象となる。
       if (!key.startsWith('_')) {
         p[key] = this[key];
@@ -77,7 +80,7 @@ export class Logger {
     const _storeKey = this._store ? `(storeKey: ${this._store.key})` : '';
 
     if ((this._store && this._store.devMode) || !this._store) {
-      const what = this.state instanceof String ? 'Message' : 'Added State';
+      const what = typeof this.state === 'string' ? 'Message from Store' : 'State Information from Store';
       if (message) {
         console.log(`===== ${what} ${_storeKey}: ${message} =====`);
       } else {
@@ -85,7 +88,7 @@ export class Logger {
       }
       console.log(obj);
     }
-    return obj;
+    // return obj;
   }
 }
 

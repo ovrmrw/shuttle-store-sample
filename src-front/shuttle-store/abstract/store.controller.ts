@@ -3,13 +3,13 @@ import { Observable, Subscription } from 'rxjs/Rx';
 import lodash from 'lodash';
 
 import { Store, _NOTIFICATION_ } from '../store';
-import { AbstractStoreState, StoreMulti } from './store.abstract.state';
+import { AbstractStoreControllerBase, StoreMulti } from './store.controller.base';
 
 const LOCAL_STORAGE_KEY = 'ovrmrw-localstorage';
 const GLOBAL_LOCAL_STORAGE_KEY = LOCAL_STORAGE_KEY + '_$global';
 
 
-export abstract class AbstractStoreService extends AbstractStoreState {
+export abstract class AbstractStoreController extends AbstractStoreControllerBase {
   constructor(storeMulti: StoreMulti) {
     super(storeMulti);
   }
@@ -22,7 +22,7 @@ export abstract class AbstractStoreService extends AbstractStoreState {
     const observables = this.stores.map(store => store.takeLatest$(_NOTIFICATION_));
     return Observable
       .merge(...observables)
-      .debounceTime(1); // あまり細かくストリームを流す必要もないのでdebounceTime
+      // .debounceTime(1); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
 

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, provide } from '@angular/core';
 import { OnActivate } from '@angular/router-deprecated';
 
-import { Store, ComponentGuidelineUsingStore } from '../shuttle-store';
+import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page1Service, Page1State } from './page1.service';
 
 
@@ -16,7 +16,7 @@ import { Page1Service, Page1State } from './page1.service';
     <div>Colorはどんどんリストに追加されていきますが、30秒経過すると次のStore更新時に消えるようになっています。</div>
     <hr />
     <h3>Settings</h3>
-    <div>Title: <input type="text" [(ngModel)]="title" /></div>
+    <div>Title: <input type="text" [(ngModel)]="title" /><button (click)="lockTitle()">Lock Title</button><button (click)="unlockTitle()">Unlock Title</button></div>
     <div>Color: <input type="text" #color /><button (click)="setColor(color)">Push</button></div>    
     <hr />
     <h3>Replay</h3>
@@ -36,14 +36,14 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
 
   ngOnInit() {
-    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
     this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
 
   registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
-    this.service.disposableSubscriptions = [
+    this.service.SC.disposableSubscriptions = [
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page1'))
         .subscribe(),
@@ -59,14 +59,23 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
 
-  setColor(el: HTMLInputElement) {    
+  lockTitle() {
+    this.service.putTitleWithLock(this.title).then(x => x.log('Title with lock'));
+  }
+
+  unlockTitle() {
+    this.service.unlockTitle().then(x => x.log('Unlock Title'));
+  }
+
+
+  setColor(el: HTMLInputElement) {
     this.service.putColor(el.value).then(x => x.log('Color'));
     el.value = '';
   }
 
 
   clearState() {
-    this.service.clearAllStatesAndAllStorages();
+    this.service.SC.clearAllStatesAndAllStorages();
   }
 
 

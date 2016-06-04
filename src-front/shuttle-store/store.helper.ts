@@ -77,14 +77,24 @@ export function gabageCollectorFastTuned(states: State[]): State[] {
     const limit = stateLast.rule && stateLast.rule.limit ? stateLast.rule.limit : DEFAULT_LIMIT;
     const filterId = stateLast.rule && stateLast.rule.filterId ? stateLast.rule.filterId : null;
 
-    // uniqueIdが指定されている場合、同じuniqueIdのものだけ抽出する。
+    // uniqueIdルールが指定されている場合、同じuniqueIdのものだけ抽出する。
     if (filterId) {
       objs = objs.filter(obj => obj.rule && obj.rule.filterId ? obj.rule.filterId === filterId : true);
     }
 
-    // durationが指定されている場合、durationを過ぎていないものだけ抽出する。
+    // durationルールが指定されている場合、durationを過ぎていないものだけ抽出する。
     const now = lodash.now();
     objs = objs.filter(obj => obj.rule && obj.rule.duration ? now - obj.timestamp < obj.rule.duration : true);
+
+    // lockルールが指定されている場合、lock=true以降の要素は排除する。
+    // put関数の中で制御する。
+    // let isLocked = false;
+    // objs = objs.reduce((p, obj) => {
+    //   if (!isLocked) { p.push(obj); } // 必ず最初の要素はpushされるようにする。
+    //   if (obj.rule && obj.rule.lock) { isLocked = true; }      
+    //   return p;
+    // }, []);
+
 
     if (objs.length > limit) {
       // objs.reverse().slice(0, maxElementsByKey).reverse().forEach(obj => newObjs.push(obj));

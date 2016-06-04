@@ -31,21 +31,21 @@ export class Page3Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
   
   ngOnInit() {
-    this.service.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
+    this.service.SC.loadPrimitiveValuesFromLocalStorage(this); // inputタグの値を復元する。
 
 
-    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
     this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
 
   registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
-    this.service.disposableSubscriptions = [
+    this.service.SC.disposableSubscriptions = [
       Observable.interval(1000)
         .subscribe(() => {
           // inputタグの値を保存する。
-          this.service.savePrimitiveValuesToLocalStorage(this, [this.service, this.state, this.cd]);
+          this.service.SC.savePrimitiveValuesToLocalStorage(this, [this.service, this.state, this.cd]);
         }),
     ];
   }

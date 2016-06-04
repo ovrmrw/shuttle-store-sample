@@ -62,14 +62,14 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   ) { }
   
   ngOnInit() {
-    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
     this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
 
   registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
-    this.service.disposableSubscriptions = [
+    this.service.SC.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
         .debounceTime(200)
@@ -106,11 +106,11 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
 
 
   rollback() {
-    this.service.rollback();
+    this.service.SC.rollback();
   }
   
   revertRollback() {
-    this.service.revertRollback();
+    this.service.SC.revertRollback();
   }
 
 
@@ -119,7 +119,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
   clearState() {
-    this.service.clearAllStatesAndAllStorages();
+    this.service.SC.clearAllStatesAndAllStorages();
   }
 
 

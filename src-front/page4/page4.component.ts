@@ -63,7 +63,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     });
 
 
-    this.service.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
+    this.service.SC.initializeWatchingSubscriptionsBeforeRegisterOnInit(this.cd); // 登録済みの変更監視Subscriptionを全て破棄する。
     this.registerWatchingSubscriptionsAfterInitializeOnInit(); // ページ遷移入の度に変更監視Subscriptionを登録する。
   }
 
@@ -77,7 +77,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     let previousKeyCode: number;
 
     // 次回ページ遷移入時にunsubscribeするsubscription群。
-    this.service.disposableSubscriptions = [
+    this.service.SC.disposableSubscriptions = [
       // キーボード入力イベントをハンドリングする。Storeにデータを送る。
       Observable.fromEvent<KeyboardEvent>(document.getElementById('keyinput'), 'keyup')
         // .do(event => console.log(event))
@@ -166,7 +166,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
 
 
   startTruetimeReplay() {
-    this.service.disposableSubscription = this.state.keyInputsReplayStream$$
+    this.service.SC.disposableSubscription = this.state.keyInputsReplayStream$$
       .do(objs => {
         if (objs.filter(obj => 'diff' in obj && 'code' in obj).length > 0) {
           const diffs = objs.map(obj => obj.diff / 1000); // diffの単位をミリ秒から秒に変換。
@@ -184,7 +184,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
 
 
   clearState() {
-    this.service.clearAllStatesAndAllStorages();
+    this.service.SC.clearAllStatesAndAllStorages();
   }
 
 

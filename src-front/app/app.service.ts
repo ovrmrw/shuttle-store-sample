@@ -1,26 +1,16 @@
-import { Store, AbstractStoreService, AbstractStoreState } from '../shuttle-store';
-
-export const STORE_MAIN = 'main';
+// export const STORE_MAIN = 'main';
 export const STORE_SECOND = 'second';
 export const STORE_FORM = 'form';
 
-////////////////////////////////////////////////////////////////////////////
-// Parent App Service which extends StoreService
-// Mainly, keys of stored values are defined here. 
-export abstract class AppService extends AbstractStoreService {
-  static _TITLE_ = ['app-title'];
-  static _COLOR_ = ['color'];
 
-  static _KEYINPUT_ = ['keyinput'];
-  static _UNIQUEID_ = ['uniqueid'];
+export class Identifier {
+  _TITLE_ = ['app-title'];
+  _COLOR_ = ['color'];
 
-  static _FORMDATA_ = ['formdata'];
+  _KEYINPUT_ = ['keyinput'];
+  _UNIQUEID_ = ['uniqueid'];
 
-  static _WIKIPEDIA_ = ['wikipedia-api'];
+  _FORMDATA_ = ['formdata'];
 
-  constructor(store: Store) { super(store); }
-}
-
-export abstract class AppState extends AbstractStoreState {
-  constructor(store: Store) { super(store); }
+  _WIKIPEDIA_ = ['wikipedia-api'];
 }

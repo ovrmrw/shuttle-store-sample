@@ -3,16 +3,17 @@ import { Jsonp } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
 import lodash from 'lodash';
 
-import { Store } from '../shuttle-store';
-import { AppService, AppState, STORE_SECOND } from '../services.ref';
+import { StoreController } from '../shuttle-store';
+import { Identifier, STORE_SECOND } from '../services.ref';
 
 
 ////////////////////////////////////////////////////////////////////////////
 // Service
 @Injectable()
-export class Page6Service extends AppService {
-  constructor(store: Store, private jsonp: Jsonp) { super(store); }
-  secondStore: Store = this.getStoreSafely(STORE_SECOND); // Wikipediaのデータを保存するためのStore
+export class Page6Service {
+  constructor(public SC: StoreController, private IR: Identifier, private jsonp: Jsonp) { }
+  private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
+  private secondStore = this.SC.getStoreSafely(STORE_SECOND); // Wikipediaのデータを保存するためのStore
 
   requestWiki(keyword: string): Observable<any> {
     const _keyword = encodeURIComponent(keyword);
@@ -22,7 +23,7 @@ export class Page6Service extends AppService {
 
   requestWikiLikeFalcor(keyword: string): Observable<any> {
     if (keyword.length === 0) { return Observable.of({ 'error': 'No keyword is not accepted.' }); }
-    const identifier = [...S._WIKIPEDIA_, JSON.stringify({ keyword })];
+    const identifier = [...this.IR._WIKIPEDIA_, JSON.stringify({ keyword })];
     const cache = this.secondStore.takeLatest<any>(identifier); // キャッシュがあるか探す。
     if (cache) { // キャッシュがあればそれを返す。なければHTTPリクエストする。
       console.log('Wiki data from cache, not from HTTP request.');
@@ -37,14 +38,13 @@ export class Page6Service extends AppService {
   }
 }
 
-const S = Page6Service; // shorthand
-
 
 ////////////////////////////////////////////////////////////////////////////
 // State (Declared only getters from Store)
 @Injectable()
-export class Page6State extends AppState {
-  constructor(store: Store) { super(store); }
+export class Page6State {
+  constructor(private SC: StoreController, private IR: Identifier) { }
+  private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
 
-  get title() { return this.mainStore.takeLatest<string>(S._TITLE_); }
+  get title() { return this.mainStore.takeLatest<string>(this.IR._TITLE_); }
 }

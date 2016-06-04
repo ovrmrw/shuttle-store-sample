@@ -59,7 +59,7 @@ export class Store {
   }) {
     logConstructorName.call(this);
     const {autoRefresh, devMode, useToastr} = options || { autoRefresh: false, devMode: false, useToastr: false };
-    this.storeKey = storeKey || '__default__';
+    this.storeKey = storeKey || '__main__';
     this.dbStatesKey = LEVELDB_KEY + '-' + this.storeKey;
     this.dbOsnKey = this.dbStatesKey + '-osn';
 
@@ -241,20 +241,32 @@ export class Store {
 
         // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。
         if (nameablesAsIdentifier !== _NOTIFICATION_) { this.osnLatest++; }
-        // osnをLevelDBにWriteする。
-        db.put(this.levelupOsnKey, this.osnLatest, (err) => {
-          if (err) { console.log(err); }
-          this.informMix('osnLatest: ' + this.osnLatest);
-        });
-        const identifier = generateIdentifier(nameablesAsIdentifier);
-        const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
 
-        if (!this.isSuspending) {
-          this.dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
-        } else { // サスペンドモードのとき。
-          this.tempStates.push(state);
+        const identifier = generateIdentifier(nameablesAsIdentifier);
+
+        const stateLatest: State = this.takeLatestAsState(nameablesAsIdentifier) || new State();
+        const isLocked: boolean = stateLatest.rule && stateLatest.rule.lock ? stateLatest.rule.lock : null;
+
+        if (!isLocked) { // Stateに既にlockルールが適用されている場合は追加しない。          
+          // osnをLevelDBにWriteする。
+          db.put(this.levelupOsnKey, this.osnLatest, (err) => {
+            if (err) { console.log(err); }
+            this.informMix('osnLatest: ' + this.osnLatest);
+          });
+
+          const state = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
+          if (state.rule && state.rule.lock) { this.informMix(`State(${identifier}) is locked.`, toastr.info, alert); }
+
+          if (!this.isSuspending) {
+            this.dispatcher$.next(state); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+          } else { // サスペンドモードのとき。
+            this.tempStates.push(state);
+          }
+          resolve(new Logger(state, this));
+        } else {
+          const message = this.informMix(`State(${identifier}) is already locked!`, toastr.error, alert);
+          resolve(new Logger(message, this));
         }
-        resolve(new Logger(state, this));
         console.timeEnd('put(setState)');
       });
     });
@@ -288,6 +300,20 @@ export class Store {
   getState = this.takeLatest;
 
 
+  private takeManyAsState(nameablesAsIdentifier: Nameable[]): State[] {
+    const identifier = generateIdentifier(nameablesAsIdentifier);
+    const states = this.states
+      .filter(state => state && state.key === identifier);
+    return lodash.cloneDeep(states).reverse(); // cloneDeepして返さないとComponentでの変更がStore内に波及する。昇順を降順に反転させる。
+  }
+
+
+  private takeLatestAsState(nameablesAsIdentifier: Nameable[]): State {
+    const states = this.takeManyAsState(nameablesAsIdentifier);
+    return states && states.length > 0 ? states[0] : null;
+  }
+
+
   private takeManyAsState$(nameablesAsIdentifier: Nameable[], limit: number = DEFAULT_LIMIT): Observable<State[]> {
     const identifier = generateIdentifier(nameablesAsIdentifier);
     const _limit = getPositiveNumber(limit, DEFAULT_LIMIT); // limit && limit > 0 ? limit : DEFAULT_LIMIT;
@@ -316,6 +342,17 @@ export class Store {
       .map(values => values.length > 0 ? values[0] : _alt);
   }
   getState$ = this.takeLatest$;
+
+
+  unlockState(nameablesAsIdentifier: Nameable[]): Promise<Logger> {
+    const identifier = generateIdentifier(nameablesAsIdentifier);
+    this.states
+      .filter(state => state && state.key === identifier)
+      .filter(state => state.rule && state.rule.lock)
+      .forEach(state => state.rule.lock = false);
+    const message = this.informMix(`State(${identifier}) is now unlocked.`, toastr.info, alert);
+    return Promise.resolve(new Logger(message, this));
+  }
 
 
   // ただの配列を時間軸のある値のストリームに変換して流す。後続はinterval毎に配列の値を順々に受け取る。
