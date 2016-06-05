@@ -88,9 +88,8 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
 
-  // set title(data: string) { this.service.putTitle(data).then(x => x.log('Title')); }
-  // get title() { return this.state.title; }
   title: string;
+  
 
   // Observableにより更新される変数なので勝手に変更しないこと。;
   private _$title: string;

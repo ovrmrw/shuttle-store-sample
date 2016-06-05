@@ -21,8 +21,8 @@ export abstract class AbstractStoreController extends AbstractStoreControllerBas
     // return this.mainStore.takeLatest$(_NOTIFICATION_); 
     const observables = this.stores.map(store => store.takeLatest$<any>(_NOTIFICATION_));
     return Observable
-      .merge(...observables)
-      .debounceTime(10); // あまり細かくストリームを流す必要もないのでdebounceTime
+      .merge(...observables);
+      // .debounceTime(10); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
 

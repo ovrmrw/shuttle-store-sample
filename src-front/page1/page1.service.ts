@@ -26,7 +26,7 @@ export class Page1State {
   constructor(private SC: StoreController, private IR: Identifiers) { }
   private mainStore = this.SC.getStoreSafely(); // MainStoreを取得
 
-  get title() { return this.mainStore.takeLatest<string>(this.IR._TITLE_); }
+  // get title() { return this.mainStore.takeLatest<string>(this.IR._TITLE_); }
   get titles$() { return this.mainStore.takeMany$<string>(this.IR._TITLE_); }
   get titleReplayStream$$() { return this.mainStore.takePresetReplayStream$<string>(this.IR._TITLE_, { interval: 25 }); }
 

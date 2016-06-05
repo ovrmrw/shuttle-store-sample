@@ -278,7 +278,7 @@ export class Store {
             setTimeout(() => this.putNewNotification('timer', 'Timer invoked by duration time'), newState.rule.duration);
           }
 
-          console.timeEnd('put(setState)');
+          // console.timeEnd('put(setState)');
           if (!this.isSuspending) {
             setTimeout(() => {
               this.dispatcher$.next(newState); // dispatcherをsubscribeしている全てのSubscriberをキックする。
@@ -287,10 +287,11 @@ export class Store {
             this.tempStates.push(newState);
           }
           resolve(new Logger(newState, this));
-
+          console.timeEnd('put(setState)');
         } else {
           const message = this.informMix(`State(${identifier}) is already locked!`, toastr.error, alert);
           resolve(new Logger(message, this));
+          console.timeEnd('put(setState)');
         }
       });
     });
