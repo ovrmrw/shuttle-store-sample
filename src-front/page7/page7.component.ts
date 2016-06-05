@@ -74,7 +74,7 @@ export class Page7Component implements OnInit, ComponentGuidelineUsingStore {
     this.service.SC.disposableSubscriptions = [
       // キーボード入力の度にStoreにフォームのStateを送る。
       Observable.fromEvent<KeyboardEvent>(this.el.nativeElement, 'keyup')
-        .debounceTime(200)
+        .debounceTime(100)
         .do(() => this.service.putForm(this.form).then(x => x.log('Form')))
         .subscribe(),
 

@@ -150,7 +150,6 @@ export class Store {
             // タブウインドウがアクティブな場合のみ、localStorageを変更してwindowの"storage"イベントを発火させる。
             if (document.hasFocus()) { // hasFocusを書かないと複数タブ間で無限ループが始まる。
               setTimeout(() => {
-                // console.log('storageChange');   
                 console.time('LocalStorageChange');
                 window.localStorage.setItem(this.storeKey, String(lodash.now()));
                 console.timeEnd('LocalStorageChange');
@@ -265,11 +264,10 @@ export class Store {
         if (!isLocked) { // Stateに既にlockルールが適用されている場合は追加しない。          
           // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。  
           if (!compareIdentifiers(identifier, _NOTIFICATION_)) { this.osnLatest++; }
-          // this.osnLatest++;
           // osnをLevelDBにWriteする。
           db.put(this.levelupOsnKey, this.osnLatest, (err) => {
             if (err) { console.log(err); }
-            this.informMix('osnLatest: ' + this.osnLatest);
+            // this.informMix('osnLatest: ' + this.osnLatest);
           });
 
           const newState = new State({ key: identifier, value: lodash.cloneDeep(data), osn: this.osnLatest, ruleOptions: ruleOptions });
@@ -280,17 +278,20 @@ export class Store {
             setTimeout(() => this.putNewNotification('timer', 'Timer invoked by duration time'), newState.rule.duration);
           }
 
+          console.timeEnd('put(setState)');
           if (!this.isSuspending) {
-            this.dispatcher$.next(newState); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+            setTimeout(() => {
+              this.dispatcher$.next(newState); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+            }, 1);
           } else { // サスペンドモードのとき。
             this.tempStates.push(newState);
           }
           resolve(new Logger(newState, this));
+
         } else {
           const message = this.informMix(`State(${identifier}) is already locked!`, toastr.error, alert);
           resolve(new Logger(message, this));
         }
-        console.timeEnd('put(setState)');
       });
     });
   }
@@ -513,7 +514,7 @@ export class Store {
                 this.states = convertJsonValueToStates(value, this.states);
 
                 const message = this.informMix('Store is now refreshed!', toastr.info);
-                console.log(message);
+                // console.log(message);
                 this.putNewNotification('refreshed', message); // this.put('refreshed', _NOTIFICATION_, { limit: 1 }).then(x => x.log(message)); // refreshしたらクライアントにPush通知する。
                 resolve(new Logger('refresh', this));
                 console.timeEnd('refresh');

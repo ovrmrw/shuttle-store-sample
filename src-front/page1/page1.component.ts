@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit, provide } from '@angular/core';
-import { OnActivate } from '@angular/router-deprecated';
+import { Observable } from 'rxjs/Rx';
 
 import { ComponentGuidelineUsingStore } from '../shuttle-store';
 import { Page1Service, Page1State } from './page1.service';
@@ -19,7 +19,7 @@ import { Page1Service, Page1State } from './page1.service';
     <p>Colorはどんどんリストに追加されていきますが、30秒経過すると次のStore更新時に消えるようになっています。</p>    
     <hr />
     <h3>Settings</h3>
-    <div>Title: <input type="text" [(ngModel)]="title" /><button (click)="lockTitle()">Lock Title</button><button (click)="unlockTitle()">Unlock Title</button></div>
+    <div>Title: <input type="text" [(ngModel)]="title" id="title" /><button (click)="lockTitle()">Lock Title</button><button (click)="unlockTitle()">Unlock Title</button></div>
     <div>Color: <input type="text" #color /><button (click)="setColor(color)">Push</button></div>    
     <hr />
     <h3>Replay</h3>
@@ -47,8 +47,14 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   registerWatchingSubscriptionsAfterInitializeOnInit() {
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.SC.disposableSubscriptions = [
+      Observable.fromEvent<KeyboardEvent>(document.querySelector('sg-page1 #title'), 'keyup')
+        .debounceTime(100)
+        .do(() => this.service.putTitle(this.title).then(x => x.log('Title')))
+        .subscribe(),
+
       this.state.titles$
         .do(titles => console.log('DetectChange: ' + titles[2] + ' -> ' + titles[1] + ' -> ' + titles[0] + ' on Page1'))
+        .do(titles => this.title = titles[0])
         .subscribe(),
 
       this.state.titleReplayStream$$
@@ -82,9 +88,9 @@ export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   }
 
 
-  set title(data: string) { this.service.putTitle(data).then(x => x.log('Title')); }
-  get title() { return this.state.title; }
-
+  // set title(data: string) { this.service.putTitle(data).then(x => x.log('Title')); }
+  // get title() { return this.state.title; }
+  title: string;
 
   // Observableにより更新される変数なので勝手に変更しないこと。;
   private _$title: string;

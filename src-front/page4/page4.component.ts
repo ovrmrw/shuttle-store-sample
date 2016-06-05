@@ -82,7 +82,7 @@ export class Page4Component implements OnInit, AfterViewInit, ComponentGuideline
     // 次回ページ遷移入時にunsubscribeするsubscription群。
     this.service.SC.disposableSubscriptions = [
       // キーボード入力イベントをハンドリングする。Storeにデータを送る。
-      Observable.fromEvent<KeyboardEvent>(document.getElementById('keyinput'), 'keyup')
+      Observable.fromEvent<KeyboardEvent>(document.querySelector('sg-page4 #keyinput'), 'keyup')
         // .do(event => console.log(event))
         .do(event => { // keyAが押されると処理開始。          
           if (!this.proccessing && event.keyCode === 65 /* keyA */) {
