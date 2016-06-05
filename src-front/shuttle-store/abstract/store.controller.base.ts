@@ -71,7 +71,7 @@ export abstract class AbstractStoreControllerBase {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') {
             this.stores.forEach(store => {
-              store.refresh().then(x => x.log('View State Refresh Request'));
+              store.refresh().then(x => x.log('View State Refresh Request by Tab Change event'));
             });
           }
         }, false);
@@ -86,7 +86,7 @@ export abstract class AbstractStoreControllerBase {
           if (document.visibilityState === 'visible') {
             const storeKey = event.key; // rename
             this.stores.forEach(store => {
-              store.refresh(storeKey).then(x => x.log('View State Refresh Request'));
+              store.refresh(storeKey).then(x => x.log('View State Refresh Request by Storage Change event'));
             });
           }
         }, false);

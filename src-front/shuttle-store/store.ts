@@ -146,12 +146,16 @@ export class Store {
           db.batch(ops, (err) => {
             if (err) { console.log(err); }
             console.timeEnd('IndexedDB(level-js)SetItem');
-          });
 
-          // localStorageを変更してwindowの"storage"イベントを発火させる。
-          new Promise(resolve => {
-            window.localStorage.setItem(this.storeKey, String(lodash.now()));
-            resolve();
+            // タブウインドウがアクティブな場合のみ、localStorageを変更してwindowの"storage"イベントを発火させる。
+            if (document.hasFocus()) { // hasFocusを書かないと複数タブ間で無限ループが始まる。
+              setTimeout(() => {
+                // console.log('storageChange');   
+                console.time('LocalStorageChange');
+                window.localStorage.setItem(this.storeKey, String(lodash.now()));
+                console.timeEnd('LocalStorageChange');
+              }, 1);
+            }
           });
         } catch (err) {
           console.log(err);
@@ -261,6 +265,7 @@ export class Store {
         if (!isLocked) { // Stateに既にlockルールが適用されている場合は追加しない。          
           // NOTIFICATIONの場合はosnをカウントアップしない。Refreshを抑制するため。  
           if (!compareIdentifiers(identifier, _NOTIFICATION_)) { this.osnLatest++; }
+          // this.osnLatest++;
           // osnをLevelDBにWriteする。
           db.put(this.levelupOsnKey, this.osnLatest, (err) => {
             if (err) { console.log(err); }
@@ -492,13 +497,13 @@ export class Store {
   }
 
 
-  refresh(storeKey?: string): Promise<Logger> {
+  refresh(forceStoreKey?: string): Promise<Logger> {
     return new Promise<Logger>((resolve, reject) => {
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupOsnKey, (err, value) => {
         if (err) { console.log(err); }
         const osn: number = value ? Number(value) : null; // rename/retype        
-        if (this.osnLatest !== osn || storeKey === this.storeKey) {
+        if (this.osnLatest !== osn || forceStoreKey === this.storeKey) {
           // this.informMix(`osn diff detected: osn on memory -> ${this.osnLatest}, osn on DB -> ${osn}`);
           if (this.enableAutoRefresh) {
             console.time('refresh');
@@ -549,6 +554,6 @@ export class Store {
   }
 
   private putNewNotification(value: any, message?: string) {
-    this.put(value, _NOTIFICATION_, { limit: 100 }).then(x => message ? x.log(message) : undefined);
+    this.put(value, _NOTIFICATION_, { limit: 10 }).then(x => message ? x.log(message) : undefined);
   }
 }
