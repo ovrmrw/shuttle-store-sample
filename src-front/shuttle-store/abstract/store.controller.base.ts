@@ -83,7 +83,7 @@ export abstract class AbstractStoreControllerBase {
         // LocalStorageに変更があったときに発生するイベント。タブ切り替えをしていなくても発火する。
         // refreshの引数にstoreKeyを指定して、Storeのkeyと一致したらosnに変更がなくても強制的にrefreshする。
         window.addEventListener('storage', (event) => {
-          if (document.visibilityState === 'visible' && !document.hasFocus()) { // タブが少しでも見えている状態ならtrueになる。
+          if (document.visibilityState === 'visible') { // タブが少しでも見えている状態ならtrueになる。
             const storeKey = event.key; // rename
             this.stores.forEach(store => {
               store.refresh(storeKey).then(x => x.log('View State Refresh Request by Storage Change event'));
