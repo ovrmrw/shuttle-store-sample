@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject } from '@angular/core';
 
 import { Store } from './store';
 import { AbstractStoreController } from './abstract/store.controller';
@@ -6,5 +6,7 @@ import { AbstractStoreController } from './abstract/store.controller';
 
 @Injectable()
 export class StoreController extends AbstractStoreController {
-  constructor(storeOrStores: Store) { super(storeOrStores); }
+  constructor(
+    @Inject(Store) storeOrStores: Store | Store[]
+  ) { super(storeOrStores); }
 }
