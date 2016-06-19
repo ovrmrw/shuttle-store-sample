@@ -33,8 +33,8 @@ import { Page1Service, Page1State } from './page1.service';
 })
 export class Page1Component implements OnInit, ComponentGuidelineUsingStore {
   constructor(
-    private service: Page1Service,
-    private state: Page1State,
+    public service: Page1Service,
+    public state: Page1State,
     private cd: ChangeDetectorRef
   ) { }
 

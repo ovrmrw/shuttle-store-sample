@@ -15,7 +15,7 @@ const atlQueryForTest = { // stands for 'awesome-typescript-loader query'
 
 module.exports = [
   {
-    entry: ['./test/unittest.boot.ts'],
+    entry: ['./test/testing.boot.ts'],
     output: {
       path: 'bundles',
       filename: 'webpack.bundle.spec.espowered.js'

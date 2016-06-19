@@ -49,9 +49,19 @@ gulp.task('browsersync', () => {
     files: ['views/**/*.{js,css,jade,html}', 'bundles/**/*.js'], // BrowserSyncにまかせるファイル群
     proxy: 'http://localhost:3000',  // express の動作するポートにプロキシ
     port: 4000,  // BrowserSync は 4000 番ポートで起動
-    open: true,  // ブラウザ open する
-    //reloadDelay: 1000 * 2,
-    //reloadDebounce: 1000 * 10,
+    open: true,
+    ghostMode: false,
+    ui: false,
+  });
+});
+
+gulp.task('browsersync:e2e', () => {
+  browserSync.init({
+    // files: ['src-{client,middle}/**/*.{js,css,jade,html,json}', 'bundles/**/*.js'], // BrowserSyncにまかせるファイル群
+    files: ['views/**/*.{js,css,jade,html}', 'bundles/**/*.js'], // BrowserSyncにまかせるファイル群
+    proxy: 'http://localhost:3000',  // express の動作するポートにプロキシ
+    port: 5000,  // BrowserSync は 5000 番ポートで起動
+    open: false,
     ghostMode: false,
     ui: false,
   });
