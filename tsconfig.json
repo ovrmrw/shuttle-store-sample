@@ -2,7 +2,6 @@
   "compilerOptions": {
     "target": "es2015",
     "noImplicitAny": false,
-    "inlineSourceMap": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,

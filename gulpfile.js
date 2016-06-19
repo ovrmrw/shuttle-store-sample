@@ -6,6 +6,7 @@ const plumber = require('gulp-plumber');
 const babel = require('gulp-babel');
 const browserSync = require('browser-sync').create();
 const ignore = require('gulp-ignore');
+const nightwatch = require('gulp-nightwatch');
 
 /////////////////////////////////////////////////////////////////////////
 // TypeScript Compile
@@ -51,7 +52,8 @@ gulp.task('browsersync', () => {
     open: true,  // ブラウザ open する
     //reloadDelay: 1000 * 2,
     //reloadDebounce: 1000 * 10,
-    ghostMode: false
+    ghostMode: false,
+    ui: false,
   });
 });
 
@@ -63,3 +65,17 @@ gulp.task('browsersync', () => {
 //   const proc = require('child_process');
 //   proc.spawn(electron, ['src-server/electron.js']);  
 // });
+
+
+
+gulp.task('nightwatch', () => {
+  gulp.src('')
+    .pipe(plumber())
+    .pipe(nightwatch({
+      configFile: 'nightwatch.conf.js'
+    }));
+});
+
+gulp.task('nightwatch:w', ['nightwatch'], () => {
+  gulp.watch(['{./,}bundles/**/*.js', '{./,}test-{e2e,nightwatch}/**/*.js'], ['nightwatch']);
+});

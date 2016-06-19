@@ -16,7 +16,7 @@ module.exports = function (config) {
 
     // list of files / patterns to load in the browser
     files: [
-      './bundles/webpack.bundle.spec.espowered.js'
+      './test/unittest.boot.ts'
     ],
 
 
@@ -27,7 +27,7 @@ module.exports = function (config) {
     // preprocess matching files before serving them to the browser
     // available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      './bundles/webpack.bundle.spec.espowered.js': ['sourcemap']
+      './test/unittest.boot.ts': ['webpack', 'sourcemap']
     },
 
 
@@ -54,8 +54,6 @@ module.exports = function (config) {
     autoWatch: true,
 
 
-    // * PhantomJSだとエラーになる。
-    // * Firefox(ver47)だとiitで単独テストしようとしたときにまともに動作しなくなる(?)
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
     browsers: ['Chrome'], // PhantomJS / Firefox / Chrome
@@ -75,8 +73,55 @@ module.exports = function (config) {
       // colors: {
       //   success: 'white'
       // },
-      // output: 'autowatch',
+      output: 'autowatch',
       divider: '/'
+    },
+
+
+    webpack: {
+      // entry: ['./test/unittest.boot.ts'],
+      // output: {
+      //   filename: './bundles/webpack.bundle.spec.espowered.js'
+      // },
+      resolve: {
+        extensions: ['', '.ts', '.js']
+      },
+      plugins: [
+        // new webpack.optimize.UglifyJsPlugin() // minify enabled
+      ],
+      module: {
+        loaders: [
+          {
+            test: /\.ts$/,
+            exclude: [/node_modules/, /typings/],
+            // loader: 'babel-loader?presets[]=es2015&plugins[]=babel-plugin-espower!ts-loader', // babel-loaderがbabel-plugin-espowerを読み込む必要がある。
+            loader: 'awesome-typescript-loader', // babel-loader!ts-loader と同じようなもの
+            query: { // stands for 'awesome-typescript-loader query'
+              library: 'es2015', // = 'es6'
+              useBabel: true,
+              babelOptions: {
+                presets: ['es2015'],
+                plugins: ['babel-plugin-espower']
+              },
+              useCache: true,
+            }
+          },
+          {
+            test: /\.json$/,
+            loader: "json-loader"
+          },
+          {
+            test: /\.html$/,
+            loader: 'html-loader'
+          }
+        ]
+      },
+      devtool: 'inline-source-map',
+    },
+
+
+    webpackMiddleware: {
+      stats: 'errors-only',
     },
 
 

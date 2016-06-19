@@ -2,12 +2,12 @@
 
 const webpack = require('webpack');
 
-const atlQuery = { // stands for 'awesome-typescript-loader query'
+const atlQueryForTest = { // stands for 'awesome-typescript-loader query'
   library: 'es2015', // = 'es6'
   useBabel: true,
   babelOptions: {
     presets: ['es2015'],
-    plugins: []
+    plugins: ['babel-plugin-espower']
   },
   useCache: true,
 };
@@ -15,10 +15,10 @@ const atlQuery = { // stands for 'awesome-typescript-loader query'
 
 module.exports = [
   {
-    entry: ['./src-front/boot.ts'],
+    entry: ['./test/unittest.boot.ts'],
     output: {
       path: 'bundles',
-      filename: 'webpack.bundle.js'
+      filename: 'webpack.bundle.spec.espowered.js'
     },
     resolve: {
       extensions: ['', '.ts', '.js']
@@ -32,9 +32,9 @@ module.exports = [
         {
           test: /\.ts$/,
           exclude: [/node_modules/, /typings/],
-          // loader: 'babel-loader!ts-loader' // first ts-loader(with tsconfig.json), second babel-loader
-          loader: 'awesome-typescript-loader', // babel-loader!ts-loader と同じようなもの 
-          query: atlQuery
+          // loader: 'babel-loader?presets[]=es2015&plugins[]=babel-plugin-espower!ts-loader', // babel-loaderがbabel-plugin-espowerを読み込む必要がある。
+          loader: 'awesome-typescript-loader', // babel-loader!ts-loader と同じようなもの
+          query: atlQueryForTest
         },
         {
           test: /\.json$/,
@@ -46,6 +46,6 @@ module.exports = [
         }
       ]
     },
-    devtool: 'source-map', // output source map
+    devtool: 'inline-source-map',
   }
 ]

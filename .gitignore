@@ -39,3 +39,7 @@ leveldb
 *.secret.*
 src*/**/*.js
 src*/**/*.js.map
+reports
+coverage
+.awcache
+screenshots
