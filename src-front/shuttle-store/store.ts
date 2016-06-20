@@ -246,9 +246,9 @@ export class Store {
   // for unit test. This function returns a Store instance whose DB is ready.
   readyForTest(clearStates: boolean = true): Promise<Store> {
     return new Promise(resolve => {
-      const time = setInterval(() => {
+      const timer = setInterval(() => {
         if (this.isReady) {
-          clearInterval(time);
+          clearInterval(timer);
           if (clearStates) {
             this.clearStatesAndStorage();
           }

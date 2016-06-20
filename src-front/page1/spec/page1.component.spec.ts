@@ -15,8 +15,8 @@ import { elements, elementText, setTimeoutPromise } from '../../../test';
 
 
 // オリジナルのfakeAsyncだとsetIntervalが元々走っているComponent(Service)をまともにテストできないので少し改造した。
-import { fakeAsync, tick } from '../../../test';
-// import { fakeAsync, tick, async } from '@angular/core/testing';
+import { fakeAsync, tick, observableValue } from '../../../test';
+// import { fakeAsync, tick, discardPeriodicTasks } from '@angular/core/testing';
 
 
 describe('Page1Component test ' + '-'.repeat(40), () => {
@@ -33,14 +33,14 @@ describe('Page1Component test ' + '-'.repeat(40), () => {
   ]);
 
 
-  beforeEach(inject([TestComponentBuilder, Store, StoreController], (tcb: TestComponentBuilder, _store, _storeController) => {
+  beforeEach(inject([TestComponentBuilder], (tcb: TestComponentBuilder) => {
     builder = tcb;
-    store = _store;
-    sc = _storeController;
+    // store = _store;
+    // sc = _storeController;
   }));
 
 
-  iit('exist 0', (done) => {
+  it('exist 0 working well', (done) => {
     let titles: string[];
     (async () => {
       // await setTimeoutPromise(0);
@@ -56,12 +56,58 @@ describe('Page1Component test ' + '-'.repeat(40), () => {
       fixture.detectChanges();
       await component.service.putTitle('abc');
       fixture.detectChanges();
-      console.log(titles);      
+      console.log(titles);
       expect(titles[0]).toBe('abc');
       expect(el.querySelector('h2#title').textContent).toEqual('abc - PAGE1');
       done();
     })();
   });
+
+  iit('exist 0 experimental - not working', fakeAsync(() => {
+    setTimeout(() => { }, 10000);
+    let titles: string[];
+    // (async () => {
+    // await setTimeoutPromise(0);
+    let fixture: ComponentFixture<Page1Component>;
+    builder.createAsync(Page1Component).then(f => fixture = f);
+    tick();
+    // tick(1000);
+    // console.log(fixture);
+    const component = fixture.componentInstance as Page1Component;
+    const el = fixture.nativeElement as HTMLElement;
+    let store;
+    // console.log(component);
+
+    component.service.SC.getStoreSafely().readyForTest().then(store => {
+      console.log(store);
+      component.service.putTitle('a');
+      tick(1000);
+      fixture.detectChanges();
+      console.log(component.title);
+    }); // .readyForTest().then(s => store = s);
+    // });
+    // tick(1000);
+    // console.log(store);
+
+    // // component.state.titles$.subscribe(v => titles = v);
+    // component.service.putTitle('a');
+    // tick(100);    
+    // fixture.detectChanges();
+    // console.log(component.title);
+    // component.service.putTitle('ab');
+    // tick(100);
+    // fixture.detectChanges();
+    // console.log(component.title);
+    // component.service.putTitle('abc');
+    // tick(100);
+    // fixture.detectChanges();
+    // console.log(component.title);
+    // console.log(titles);
+    // expect(titles[0]).toBe('abc');
+    // expect(el.querySelector('h2#title').textContent).toEqual('abc - PAGE1');
+    // discardPeriodicTasks();
+    // })();
+  }));
 
 
   it('exist', (done) => {
