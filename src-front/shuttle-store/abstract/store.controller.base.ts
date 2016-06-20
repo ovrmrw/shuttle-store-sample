@@ -32,10 +32,10 @@ export abstract class AbstractStoreControllerBase {
       this.storesArray = [store];
     }
     if (AbstractStoreControllerBase.isFirstLoad) {
-      console.log('===== storesObject =====');
-      console.log(this.storesObject);
-      console.log('===== storesArray =====');
-      console.log(this.storesArray);
+      // console.log('===== storesObject =====');
+      // console.log(this.storesObject);
+      // console.log('===== storesArray =====');
+      // console.log(this.storesArray);
     }
 
     this.addEventListnerForAutoRefreshState();

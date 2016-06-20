@@ -10,7 +10,7 @@ import { Page1Service, Page1State } from './page1.service';
 @Component({
   selector: 'sg-page1',
   template: `
-    <h2>{{title}} - PAGE1</h2>
+    <h2 id="title">{{title}} - PAGE1</h2>
     <hr />
     <p>(English) The Title you input in this page will be used every other pages.</p>
     <p>You can not only Lock the states and also Unlock them.</p>

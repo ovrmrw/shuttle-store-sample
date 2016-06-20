@@ -19,7 +19,7 @@
     "build:test": "webpack --config test/webpack.config.test.js",
     "build:test:w": "webpack --config test/webpack.config.test.js --watch",
     "karma": "npm run build:test && karma start --single-run",
-    "karma:w": "concurrently -k \"npm run build:test:w\" \"karma start\" ",
+    "karma:w": "npm run build:test && concurrently -k \"karma start\" \"npm run build:test:w\" ",
     "nightwatch": "npm run build:server && npm run build:test && concurrently -k \"npm run express:e2e\" \"gulp nightwatch\" ",
     "nightwatch:w": "npm run build:server && npm run build:test && concurrently -k \"npm run build:test:w\" \"npm run express:e2e\" \"gulp nightwatch:w\" ",
     "test": "npm run karma && npm run nightwatch",

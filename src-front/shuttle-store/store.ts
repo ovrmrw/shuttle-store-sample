@@ -87,7 +87,7 @@ export class Store {
       console.time('IndexedDB(level-js)GetItem');
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupStatesKey, (err, value) => {
-        if (err) { console.log(err); }
+        if (err) { console.error(err); }
         // const json = value; // rename
         // this.states = json && typeof (json) === 'string' ? JSON.parse(json) : this.states;
         this.states = convertJsonValueToStates(value, this.states);
@@ -144,7 +144,7 @@ export class Store {
             { type: 'put', key: this.levelupStatesKey, value: JSON.stringify(states) }
           ];
           db.batch(ops, (err) => {
-            if (err) { console.log(err); }
+            if (err) { console.error(err); }
             console.timeEnd('IndexedDB(level-js)SetItem');
 
             // タブウインドウがアクティブな場合のみ、localStorageを変更してwindowの"storage"イベントを発火させる。
@@ -243,6 +243,22 @@ export class Store {
   }
 
 
+  // for unit test. This function returns a Store instance whose DB is ready.
+  readyForTest(clearStates: boolean = true): Promise<Store> {
+    return new Promise(resolve => {
+      const time = setInterval(() => {
+        if (this.isReady) {
+          clearInterval(time);
+          if (clearStates) {
+            this.clearStatesAndStorage();
+          }
+          resolve(this);
+        }
+      }, 10);
+    });
+  }
+
+
   // (Componentで)戻り値を.log()するとセットされたStateをコンソールに出力できる。
   // Suspendモードの間はdispatcherに値を送らないように制御している。
   put(data: any, nameablesOrIdentifier: NameablesOrIdentifier, ruleOptions?: StateRuleOptions): Promise<Logger> {
@@ -251,7 +267,7 @@ export class Store {
     return new Promise<Logger>(resolve => {
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupOsnKey, (err, value) => {
-        if (err) { console.log(err); }
+        if (err) { console.error(err); }
         const osn = Number(value); // rename/retype
         this.osnLatest = lodash.max([this.osnLatest, osn, 0]); // 最新(最大)のosnを取得する。
 
@@ -266,7 +282,7 @@ export class Store {
           if (!compareIdentifiers(identifier, _NOTIFICATION_)) { this.osnLatest++; }
           // osnをLevelDBにWriteする。
           db.put(this.levelupOsnKey, this.osnLatest, (err) => {
-            if (err) { console.log(err); }
+            if (err) { console.error(err); }
             // this.informMix('osnLatest: ' + this.osnLatest);
           });
 
@@ -281,7 +297,7 @@ export class Store {
           console.timeEnd('put(setState)');
           if (!this.isSuspending) {
             // setTimeout(() => { // 必要無ければ余計な遅延は発生させないこと。
-              this.dispatcher$.next(newState); // dispatcherをsubscribeしている全てのSubscriberをキックする。
+            this.dispatcher$.next(newState); // dispatcherをsubscribeしている全てのSubscriberをキックする。
             // }, 1);
           } else { // サスペンドモードのとき。
             this.tempStates.push(newState);
@@ -291,7 +307,7 @@ export class Store {
         } else {
           console.timeEnd('put(setState)');
           const message = this.informMix(`State(${identifier}) is already locked!`, toastr.error, alert);
-          resolve(new Logger(message, this));          
+          resolve(new Logger(message, this));
         }
       });
     });
@@ -489,8 +505,12 @@ export class Store {
 
   clearStatesAndStorage(): void {
     const db = this.getLevelupInstance();
-    db.del(this.levelupStatesKey, (err) => console.log(err));
-    db.del(this.levelupOsnKey, (err) => console.log(err));
+    db.del(this.levelupStatesKey, (err) => {
+      if (err) { console.error(err); }
+    });
+    db.del(this.levelupOsnKey, (err) => {
+      if (err) { console.error(err); }
+    });
 
     this.states = null; // メモリ解放。
     this.states = []; // this.statesがnullだと各地でエラーが頻発するので空の配列をセットする。
@@ -503,7 +523,7 @@ export class Store {
     return new Promise<Logger>((resolve, reject) => {
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupOsnKey, (err, value) => {
-        if (err) { console.log(err); }
+        if (err) { console.error(err); }
         const osn: number = value ? Number(value) : null; // rename/retype        
         if (this.osnLatest !== osn || forceStoreKey === this.storeKey) {
           // this.informMix(`osn diff detected: osn on memory -> ${this.osnLatest}, osn on DB -> ${osn}`);
@@ -511,7 +531,7 @@ export class Store {
             console.time('refresh');
             try { // IndexedDB(level-js)からデータを取得する。        
               db.get(this.levelupStatesKey, (err, value) => {
-                if (err) { console.log(err); }
+                if (err) { console.error(err); }
                 this.states = convertJsonValueToStates(value, this.states);
 
                 const message = this.informMix('Store is now refreshed!', toastr.info);
