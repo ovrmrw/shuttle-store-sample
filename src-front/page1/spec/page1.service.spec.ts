@@ -10,6 +10,7 @@ declare var Zone: any;
 import assert from 'power-assert';
 import { describe, xdescribe, it, iit, async, expect, xit, beforeEach, beforeEachProviders, inject } from '@angular/core/testing';
 import { fakeAsync, tick, setTimeoutPromise, observableValue } from '../../../test';
+import lodash from 'lodash';
 
 
 describe('Page1Service test ' + '-'.repeat(40), () => {
@@ -31,41 +32,46 @@ describe('Page1Service test ' + '-'.repeat(40), () => {
   }));
 
 
-  it('can create', async(() => {
-    assert(!!service);
-    assert(!!state);
-  }));
+  it('can create', (done) => {
+    (async () => {
+      assert(!!service);
+      assert(!!state);
+      done();
+    })().catch(e => done.fail(e));
+  });
 
 
   // このテストはfakeAsyncテストでは通らない。asyncテストでもsetTimeoutしないと通らない。
   // ServiceからsetInterval(Observable.timer)を取り除けばこんなややこしいことをしなくてもテストが通る。
-  it('counter value must be increment correctly', () => {
+  it('titles', (done) => {
+    let titles: string[] = [];
     (async () => {
-      // console.log(Zone.current._zoneDelegate._invokeZS);
-      // await setTimeoutPromise(0, true); // setTimeoutしてzoneのfirst turnから抜けた状態じゃないと下記のテストは通らない。
-      // await setTimeoutPromise(0, true);
-      await setTimeoutPromise(1000, true);
-      // console.log(Zone.current._zoneDelegate._invokeZS);
-      // tick(5000);
-      // service.SC.clearAllStatesAndAllStorages();
-      // tick(1000);
-      let titles: string[];
-      state.titles$.subscribe(v => titles = v);
-      await setTimeoutPromise(100);
-      // tick(5000);
-      console.log(titles);
-      await service.putTitle('a')
-      // tick(5000);
-      await service.putTitle('ab')
-      // tick(5000);
-      await service.putTitle('abc')
-      // tick();
-      // tick(5000);
-      await setTimeoutPromise(1000, true);
-      console.log(titles);
-      state.titles$.subscribe(v => console.log(v)).unsubscribe();
-      // assert(titles == ['abc', 'ab']);
-    })();
+      await service.SC.readyForTestAllStores();
+      state.titles$.subscribe(values => titles = values);
+      await service.putTitle('a');
+      await service.putTitle('ab');
+      await service.putTitle('abc');
+
+      assert.deepEqual(titles, ['abc', 'ab', 'a']);
+      done();
+    })().catch(e => done.fail(e));
+  });
+
+
+  it('colors', (done) => {
+    let colors: string[] = [];
+    (async () => {
+      await service.SC.readyForTestAllStores();
+      state.colorsReplayStream$$.subscribe(values => colors = values);
+      await service.putColor('pink');
+      await service.putColor('green');
+      await service.putColor('blue');
+
+      assert.deepEqual(colors, []);
+      await setTimeoutPromise(300); // { interval: 100 }にしているので大体200～300ms程度のwaitが必要。
+      assert.deepEqual(colors, ['pink', 'green', 'blue']);
+      done();
+    })().catch(e => done.fail(e));
   });
 
 

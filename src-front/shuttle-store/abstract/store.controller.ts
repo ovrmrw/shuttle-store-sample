@@ -22,7 +22,7 @@ export abstract class AbstractStoreController extends AbstractStoreControllerBas
     const observables = this.stores.map(store => store.takeLatest$<any>(_NOTIFICATION_));
     return Observable
       .merge(...observables);
-      // .debounceTime(10); // あまり細かくストリームを流す必要もないのでdebounceTime
+    // .debounceTime(10); // あまり細かくストリームを流す必要もないのでdebounceTime
   }
 
 
@@ -74,6 +74,21 @@ export abstract class AbstractStoreController extends AbstractStoreControllerBas
     // this.store.clearStatesAndStorage();
     this.stores.forEach(store => {
       store.clearStatesAndStorage();
+    });
+  }
+
+
+  readyForTestAllStores(clearStates: boolean = true): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const promises = this.stores.map(store => store.readyForTest(clearStates));
+      Promise.all<Store>(promises).then(stores => {
+        console.info('Stores are ready for test: ' + stores.map(store => store.key).join(', '));
+        resolve();
+      }).catch(e => {
+        console.error('Error has occured when stores\'s ready process.');
+        console.error(e);
+        reject();
+      });
     });
   }
 

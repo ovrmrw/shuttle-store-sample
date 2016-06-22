@@ -12,6 +12,7 @@ import assert from 'power-assert';
 import { describe, xdescribe, it, iit, xit, async, expect, beforeEach, beforeEachProviders, inject } from '@angular/core/testing';
 import { TestComponentBuilder, ComponentFixture } from '@angular/compiler/testing';
 import { elements, elementText, setTimeoutPromise } from '../../../test';
+import lodash from 'lodash';
 
 
 // オリジナルのfakeAsyncだとsetIntervalが元々走っているComponent(Service)をまともにテストできないので少し改造した。
@@ -43,167 +44,44 @@ describe('Page1Component test ' + '-'.repeat(40), () => {
   it('exist 0 working well', (done) => {
     let titles: string[];
     (async () => {
-      // await setTimeoutPromise(0);
       const fixture = await builder.createAsync(Page1Component) as ComponentFixture<Page1Component>;
       const component = fixture.componentRef.instance;
       const el = fixture.nativeElement as HTMLElement;
-      await component.service.SC.getStoreSafely().readyForTest();
+      await component.service.SC.readyForTestAllStores();
 
-      component.state.titles$.subscribe(v => titles = v);
+      component.state.titles$.subscribe(values => titles = values);
       await component.service.putTitle('a');
-      fixture.detectChanges();
       await component.service.putTitle('ab');
-      fixture.detectChanges();
       await component.service.putTitle('abc');
+      
       fixture.detectChanges();
-      console.log(titles);
-      expect(titles[0]).toBe('abc');
-      expect(el.querySelector('h2#title').textContent).toEqual('abc - PAGE1');
+      assert.deepEqual(titles, ['abc', 'ab', 'a']);
+      assert(el.querySelector('h2#title').textContent === 'abc - PAGE1');
       done();
-    })();
+    })().catch(e => done.fail(e));
   });
 
-  iit('exist 0 experimental - not working', fakeAsync(() => {
-    setTimeout(() => { }, 10000);
-    let titles: string[];
-    // (async () => {
-    // await setTimeoutPromise(0);
-    let fixture: ComponentFixture<Page1Component>;
-    builder.createAsync(Page1Component).then(f => fixture = f);
-    tick();
-    // tick(1000);
-    // console.log(fixture);
-    const component = fixture.componentInstance as Page1Component;
-    const el = fixture.nativeElement as HTMLElement;
-    let store;
-    // console.log(component);
 
-    component.service.SC.getStoreSafely().readyForTest().then(store => {
-      console.log(store);
-      component.service.putTitle('a');
-      tick(1000);
-      fixture.detectChanges();
-      console.log(component.title);
-    }); // .readyForTest().then(s => store = s);
-    // });
-    // tick(1000);
-    // console.log(store);
-
-    // // component.state.titles$.subscribe(v => titles = v);
-    // component.service.putTitle('a');
-    // tick(100);    
-    // fixture.detectChanges();
-    // console.log(component.title);
-    // component.service.putTitle('ab');
-    // tick(100);
-    // fixture.detectChanges();
-    // console.log(component.title);
-    // component.service.putTitle('abc');
-    // tick(100);
-    // fixture.detectChanges();
-    // console.log(component.title);
-    // console.log(titles);
-    // expect(titles[0]).toBe('abc');
-    // expect(el.querySelector('h2#title').textContent).toEqual('abc - PAGE1');
-    // discardPeriodicTasks();
-    // })();
-  }));
-
-
-  it('exist', (done) => {
-    // setTimeout(function () {
+  it('colors', (done) => {
+    let colors: string[];
+    let time: number;
     (async () => {
-      const mainStore = await sc.getStoreSafely().readyForTest();
-      console.log(mainStore);
-      // sc.storeNotificator$$.toPromise().then(() => console.log('ready'));
-      // console.log('ready')
-      await mainStore.put('test6', ['testing']);
-      console.log(mainStore.takeLatest<string>(['testing']));
-      expect(mainStore.takeLatest<string>(['testing'])).toBe('test');
-      // assert(mainStore.takeLatest<string>(['testing']) === 'test');
-      // done();
-      // await setTimeoutPromise(0);
+      const fixture = await builder.createAsync(Page1Component) as ComponentFixture<Page1Component>;
+      const component = fixture.componentRef.instance;
+      const el = fixture.nativeElement as HTMLElement;
+      await component.service.SC.readyForTestAllStores();
+
+      component.state.colorsReplayStream$$.subscribe(values => colors = values);
+      await component.service.putColor('pink');
+      await component.service.putColor('green');
+      await component.service.putColor('yellow');
+
+      await setTimeoutPromise(300);
+      console.log(colors);
+      assert.deepEqual(colors, ['pink', 'green', 'yellow']);
       done();
-    })();
-    // }, 1000);
-
-    // mainStore.ready().then(store => {
-    //   console.log('store is ready');
-    // }).catch(err => console.log(err));
-    // tick(5000);
-    // assert(!!mainStore);
-    // assert(mainStore.key === '__main__');
-    // tick(2000);
-    // mainStore.put('test1', ['testing']).then(l => {
-    //   l.log('Test');
-    //   // console.log('after put');
-    //   // console.log(mainStore.takeLatest<string>(['testing']));
-    // });
-    // tick(5000);
-    // console.log(mainStore.takeLatest<string>(['testing']));
+    })().catch(e => done.fail(e));
   });
-
-  it('exist2', fakeAsync(() => {
-    // setTimeout(function () {
-    // (async () => {
-    let fixture: ComponentFixture<Page1Component>;
-    builder.createAsync(Page1Component).then(f => fixture = f);
-    tick();
-    tick(5000);
-    const component = fixture.componentRef.instance;
-    // let mainStore: Store;
-    component.service.putTitle('aaa');
-    tick(1000);
-    // console.log(mainStore);
-
-    // sc.storeNotificator$$.toPromise().then(() => console.log('ready'));
-    // console.log('ready')
-    // mainStore.put('test4', ['testing']);
-    // tick(1000);
-    // console.log(mainStore.takeLatest<string>(['testing']));
-    component.state.titles$.subscribe(titles => console.log(titles)).unsubscribe();
-    tick(1000);
-    // })();
-    // }, 1000);
-
-    // mainStore.ready().then(store => {
-    //   console.log('store is ready');
-    // }).catch(err => console.log(err));
-    // tick(5000);
-    // assert(!!mainStore);
-    // assert(mainStore.key === '__main__');
-    // tick(2000);
-    // mainStore.put('test1', ['testing']).then(l => {
-    //   l.log('Test');
-    //   // console.log('after put');
-    //   // console.log(mainStore.takeLatest<string>(['testing']));
-    // });
-    // tick(5000);
-    // console.log(mainStore.takeLatest<string>(['testing']));
-  }));
-
-
-  // // setIntervalが検知されてasyncテストは不可。
-  // it('can create', fakeAsync(() => {
-  //   let fixture;
-  //   builder.createAsync(Page1Component).then(f => fixture = f);
-  //   tick();
-  //   assert(!!fixture);
-  // }));
-
-  // iit('xxxx', fakeAsync(() => {
-  //   let fixture: ComponentFixture<Page1Component>;
-  //   builder.createAsync(Page1Component).then(f => fixture = f);
-  //   tick();
-  //   tick(5000);
-  //   const component = fixture.componentRef.instance;
-  //   let titles:string[];
-  //   component.state.titles$.subscribe(v => titles = v);
-  //   tick(100);
-  //   component.service.putTitle('a');
-  //   tick(10000);
-  //   console.log(titles);
-  // }))
 
 });
 
