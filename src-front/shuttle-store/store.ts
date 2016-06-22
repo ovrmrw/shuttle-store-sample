@@ -87,7 +87,7 @@ export class Store {
       console.time('IndexedDB(level-js)GetItem');
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupStatesKey, (err, value) => {
-        if (err) { console.error(err); }
+        if (err && !lodash.isEmpty(err)) { console.error(err); }
         // const json = value; // rename
         // this.states = json && typeof (json) === 'string' ? JSON.parse(json) : this.states;
         this.states = convertJsonValueToStates(value, this.states);
@@ -144,7 +144,7 @@ export class Store {
             { type: 'put', key: this.levelupStatesKey, value: JSON.stringify(states) }
           ];
           db.batch(ops, (err) => {
-            if (err) { console.error(err); }
+            if (err && !lodash.isEmpty(err)) { console.error(err); }
             console.timeEnd('IndexedDB(level-js)SetItem');
 
             // タブウインドウがアクティブな場合のみ、localStorageを変更してwindowの"storage"イベントを発火させる。
@@ -267,7 +267,7 @@ export class Store {
     return new Promise<Logger>(resolve => {
       const db = this.getLevelupInstance(); // levelup(LEVELDB_NAME, { db: leveljs });
       db.get(this.levelupOsnKey, (err, value) => {
-        if (err) { console.error(err); }
+        if (err && !lodash.isEmpty(err)) { console.error(err); }
         const osn = Number(value); // rename/retype
         this.osnLatest = lodash.max([this.osnLatest, osn, 0]); // 最新(最大)のosnを取得する。
 
@@ -282,7 +282,7 @@ export class Store {
           if (!compareIdentifiers(identifier, _NOTIFICATION_)) { this.osnLatest++; }
           // osnをLevelDBにWriteする。
           db.put(this.levelupOsnKey, this.osnLatest, (err) => {
-            if (err) { console.error(err); }
+            if (err && !lodash.isEmpty(err)) { console.error(err); }
             // this.informMix('osnLatest: ' + this.osnLatest);
           });
 
@@ -431,7 +431,8 @@ export class Store {
             .map(x => states[x]);
         }
       })
-      .map(states => pluckValueFromState<T>(states));
+      .map(state => pluckValueFromState<T>(state))
+      .filter(value => value !== null);
   }
   getPresetReplayStream$ = this.takePresetReplayStream$;
 
@@ -470,7 +471,8 @@ export class Store {
             });
         }
       })
-      .map(states => states.map(obj => pluckValueFromState<T>(obj)));
+      .map(states => states.map(obj => pluckValueFromState<T>(obj)))
+      .map(values => values.filter(value => value !== null));
   }
   getPresetReplayArrayStream$ = this.takePresetReplayArrayStream$;
 

@@ -1,16 +1,17 @@
 import { provide } from '@angular/core';
 import { Page1Service, Page1State } from '../page1.service';
-import { StoreController, Store } from '../../shuttle-store';
+import { Store, StoreController } from '../../shuttle-store';
 import { Identifiers, STORE_FORM, STORE_SECOND } from '../../services.ref';
-declare var Zone: any;
+
 
 /**
  *  ===== testing world =====
  */
 import assert from 'power-assert';
-import { describe, xdescribe, it, iit, async, expect, xit, beforeEach, beforeEachProviders, inject } from '@angular/core/testing';
-import { fakeAsync, tick, setTimeoutPromise, observableValue } from '../../../test';
 import lodash from 'lodash';
+import { describe, xdescribe, it, iit, async, expect, xit, beforeEach, beforeEachProviders, inject } from '@angular/core/testing';
+import { fakeAsync, tick, asyncPower, setTimeoutPromise, observableValue } from '../../../test';
+declare var jasmine: any;
 
 
 describe('Page1Service test ' + '-'.repeat(40), () => {
@@ -22,7 +23,7 @@ describe('Page1Service test ' + '-'.repeat(40), () => {
     provide(StoreController, { useFactory: (store) => new StoreController(store), deps: [Store] }),
     Identifiers,
     Page1Service,
-    Page1State,
+    Page1State
   ]);
 
 
@@ -32,61 +33,39 @@ describe('Page1Service test ' + '-'.repeat(40), () => {
   }));
 
 
-  it('can create', (done) => {
-    (async () => {
-      assert(!!service);
-      assert(!!state);
-      done();
-    })().catch(e => done.fail(e));
-  });
+  it('can create', asyncPower(async () => {
+    assert(!!service);
+    assert(!!state);
+  }));
 
 
-  // このテストはfakeAsyncテストでは通らない。asyncテストでもsetTimeoutしないと通らない。
-  // ServiceからsetInterval(Observable.timer)を取り除けばこんなややこしいことをしなくてもテストが通る。
-  it('titles', (done) => {
-    let titles: string[] = [];
-    (async () => {
-      await service.SC.readyForTestAllStores();
-      state.titles$.subscribe(values => titles = values);
-      await service.putTitle('a');
-      await service.putTitle('ab');
-      await service.putTitle('abc');
+  it('titles', asyncPower(async () => {
+    let titlesList: string[][] = [];
 
-      assert.deepEqual(titles, ['abc', 'ab', 'a']);
-      done();
-    })().catch(e => done.fail(e));
-  });
+    await service.SC.readyForTestAllStores();
+    state.titles$.subscribe(values => titlesList.push(values));
+    await service.putTitle('a');
+    await service.putTitle('ab');
+    await service.putTitle('abc');
+
+    console.log(titlesList);
+    assert.deepEqual(titlesList[titlesList.length - 1], ['abc', 'ab', 'a']);
+  }));
 
 
-  it('colors', (done) => {
-    let colors: string[] = [];
-    (async () => {
-      await service.SC.readyForTestAllStores();
-      state.colorsReplayStream$$.subscribe(values => colors = values);
-      await service.putColor('pink');
-      await service.putColor('green');
-      await service.putColor('blue');
+  it('colors', asyncPower(async () => {
+    let colorsList: string[][] = [];
 
-      assert.deepEqual(colors, []);
-      await setTimeoutPromise(300); // { interval: 100 }にしているので大体200～300ms程度のwaitが必要。
-      assert.deepEqual(colors, ['pink', 'green', 'blue']);
-      done();
-    })().catch(e => done.fail(e));
-  });
+    await service.SC.readyForTestAllStores();
+    state.colorsReplayStream$$.subscribe(values => colorsList.push(values));
+    await service.putColor('pink');
+    await service.putColor('green');
+    await service.putColor('blue');
 
+    // assert.deepEqual(colors, [null]);    
+    await setTimeoutPromise(300); // { interval: 100 }にしているので大体200～300ms程度のwaitが必要。
+    console.log(colorsList);
+    assert.deepEqual(colorsList[colorsList.length - 1], ['pink', 'green', 'blue']);
+  }));
 
-
-
-
-  // it('fakeAsync test', fakeAsync(() => {
-  //   let value = '';
-  //   setTimeout(() => value = 'done', 1000);
-  //   assert(value === '');
-  //   tick(500);
-  //   assert(value === '');
-  //   console.log(value);
-  //   tick(500);
-  //   assert(value !== '');
-  //   console.log(value);
-  // }));
 });

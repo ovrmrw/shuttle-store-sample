@@ -26,7 +26,7 @@ describe('Page1Component test ' + '-'.repeat(40), () => {
   let sc: StoreController;
 
   beforeEachProviders(() => [
-    provide(Store, { useFactory: () => new Store(null /* main */, { devMode: true }) }),
+    provide(Store, { useFactory: () => new Store(null /* main */, { devMode: false }) }),
     provide(StoreController, { useFactory: (store) => new StoreController(store), deps: [Store] }),
     Identifiers,
     // Page1Service,

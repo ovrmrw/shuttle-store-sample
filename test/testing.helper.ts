@@ -30,3 +30,12 @@ export function observableValue<T>(obs: Observable<T>): T {
   obs.subscribe(value => _value = value).unsubscribe(); // unsubscribeしないとsubscriptionが生き続けて処理の邪魔をする。
   return _value;
 }
+
+
+export function asyncPower(asyncFunction: () => Promise<void>): Function {
+  return function (done) {
+    asyncFunction()
+      .then(() => done())
+      .catch(err => done.fail(err.message ? err.message : err));
+  }
+}

@@ -81,14 +81,16 @@ export abstract class AbstractStoreController extends AbstractStoreControllerBas
   readyForTestAllStores(clearStates: boolean = true): Promise<any> {
     return new Promise((resolve, reject) => {
       const promises = this.stores.map(store => store.readyForTest(clearStates));
-      Promise.all<Store>(promises).then(stores => {
-        console.info('Stores are ready for test: ' + stores.map(store => store.key).join(', '));
-        resolve();
-      }).catch(e => {
-        console.error('Error has occured when stores\'s ready process.');
-        console.error(e);
-        reject();
-      });
+      Promise.all<Store>(promises)
+        .then(stores => {
+          console.info('Stores are ready for test: ' + stores.map(store => store.key).join(', '));
+          resolve();
+        })
+        .catch(e => {
+          console.error('Error has occured when stores\'s ready process.');
+          console.error(e);
+          reject();
+        });
     });
   }
 
